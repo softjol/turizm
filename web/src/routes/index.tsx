@@ -62,7 +62,7 @@ export default function HomePage() {
         <div className="absolute inset-0 -z-10">
           <img
             src={heroImg}
-            alt="Горы и юрты Сары-Челека"
+            alt={t("home.heroAlt")}
             width={1920}
             height={1280}
             className="h-full w-full object-cover"

@@ -15,25 +15,27 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useI18n } from "@/lib/i18n";
 
 const nav = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/users", label: "Пользователи", icon: Users },
-  { to: "/admin/hotels", label: "Гостиницы", icon: Building2 },
-  { to: "/admin/rooms", label: "Комнаты", icon: Bed },
-  { to: "/admin/bookings", label: "Бронирования", icon: Calendar },
-  { to: "/admin/reviews", label: "Отзывы", icon: Star },
-  { to: "/admin/complaints", label: "Жалобы", icon: Flag },
-  { to: "/admin/categories", label: "Категории жилья", icon: Tag },
-  { to: "/admin/amenities", label: "Удобства", icon: Sparkles },
-  { to: "/admin/finance", label: "Финансы", icon: Wallet },
-  { to: "/admin/notifications", label: "Уведомления", icon: Bell },
-  { to: "/admin/settings", label: "Настройки", icon: Settings },
+  { to: "/admin", labelKey: "ad.navDashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin/users", labelKey: "ad.navUsers", icon: Users },
+  { to: "/admin/hotels", labelKey: "ad.navHotels", icon: Building2 },
+  { to: "/admin/rooms", labelKey: "ad.navRooms", icon: Bed },
+  { to: "/admin/bookings", labelKey: "ad.navBookings", icon: Calendar },
+  { to: "/admin/reviews", labelKey: "ad.navReviews", icon: Star },
+  { to: "/admin/complaints", labelKey: "ad.navComplaints", icon: Flag },
+  { to: "/admin/categories", labelKey: "ad.navCategories", icon: Tag },
+  { to: "/admin/amenities", labelKey: "ad.navAmenities", icon: Sparkles },
+  { to: "/admin/finance", labelKey: "ad.navFinance", icon: Wallet },
+  { to: "/admin/notifications", labelKey: "ad.navNotifications", icon: Bell },
+  { to: "/admin/settings", labelKey: "ad.navSettings", icon: Settings },
 ];
 
 export default function AdminLayout() {
+  const { t } = useI18n();
   const pathname = useLocation().pathname;
-  useDocumentTitle("Админ-панель — MEIMAN");
+  useDocumentTitle(t("ad.docTitle"));
   return (
     <AppShell>
       <div className="container-app grid gap-8 py-8 lg:grid-cols-[240px_1fr]">
@@ -41,7 +43,7 @@ export default function AdminLayout() {
           <div className="rounded-2xl border border-border/70 bg-card p-3">
             <div className="px-3 py-2">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Администратор
+                {t("ad.panelLabel")}
               </div>
               <div className="mt-0.5 font-display text-base font-bold">MEIMAN Panel</div>
             </div>
@@ -61,7 +63,7 @@ export default function AdminLayout() {
                     }`}
                   >
                     <n.icon className="h-4 w-4" />
-                    {n.label}
+                    {t(n.labelKey)}
                   </Link>
                 );
               })}

@@ -1,35 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/lib/i18n";
 
 export default function AdminSettings() {
+  const { t } = useI18n();
   return (
     <div className="max-w-2xl">
-      <h1 className="font-display text-3xl font-extrabold">Настройки</h1>
-      <p className="mt-1 text-muted-foreground">Параметры платформы</p>
+      <h1 className="font-display text-3xl font-extrabold">{t("ad.navSettings")}</h1>
+      <p className="mt-1 text-muted-foreground">{t("ad.settingsSubtitle")}</p>
 
       <div className="mt-6 space-y-6">
         <div className="rounded-2xl border border-border/70 bg-card p-6">
-          <h2 className="font-display text-lg font-bold">Основные</h2>
+          <h2 className="font-display text-lg font-bold">{t("ad.setGeneral")}</h2>
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
-            <Field label="Название платформы">
-              <Input defaultValue="Туризм Сары-Челек" />
+            <Field label={t("ad.setPlatformName")}>
+              <Input placeholder={t("ad.setPlatformName")} />
             </Field>
-            <Field label="Контактный телефон">
-              <Input defaultValue="+996 700 00 00 00" />
+            <Field label={t("ad.setContactPhone")}>
+              <Input placeholder="+996 700 00 00 00" />
             </Field>
-            <Field label="Комиссия платформы, %">
+            <Field label={t("ad.setCommission")}>
               <Input type="number" defaultValue="10" />
             </Field>
-            <Field label="Размер задатка по умолчанию, %">
+            <Field label={t("ad.setDeposit")}>
               <Input type="number" defaultValue="30" />
             </Field>
-            <Field label="Валюта">
+            <Field label={t("ad.setCurrency")}>
               <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option>Сом (KGS)</option>
-                <option>Доллар (USD)</option>
+                <option>{t("ad.curKgs")}</option>
+                <option>{t("ad.curUsd")}</option>
               </select>
             </Field>
-            <Field label="Язык по умолчанию">
+            <Field label={t("ad.setLanguage")}>
               <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option>Русский</option>
                 <option>Кыргызский</option>
@@ -40,27 +42,19 @@ export default function AdminSettings() {
         </div>
 
         <div className="rounded-2xl border border-border/70 bg-card p-6">
-          <h2 className="font-display text-lg font-bold">Модерация</h2>
+          <h2 className="font-display text-lg font-bold">{t("ad.setModeration")}</h2>
           <label className="mt-4 flex items-center justify-between">
-            <span className="text-sm">Новые гостиницы требуют одобрения</span>
-            <input
-              type="checkbox"
-              defaultChecked
-              className="h-5 w-5 accent-[hsl(var(--primary))]"
-            />
+            <span className="text-sm">{t("ad.setApproveHotels")}</span>
+            <input type="checkbox" defaultChecked className="h-5 w-5 accent-[hsl(var(--primary))]" />
           </label>
           <label className="mt-3 flex items-center justify-between">
-            <span className="text-sm">Отзывы только от проживавших гостей</span>
-            <input
-              type="checkbox"
-              defaultChecked
-              className="h-5 w-5 accent-[hsl(var(--primary))]"
-            />
+            <span className="text-sm">{t("ad.setReviewsOnlyGuests")}</span>
+            <input type="checkbox" defaultChecked className="h-5 w-5 accent-[hsl(var(--primary))]" />
           </label>
         </div>
 
         <Button size="lg" className="rounded-xl">
-          Сохранить изменения
+          {t("ad.setSave")}
         </Button>
       </div>
     </div>

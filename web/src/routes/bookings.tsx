@@ -33,13 +33,13 @@ const TAB_STATUSES: Record<(typeof tabKeys)[number], BookingStatus[] | null> = {
 };
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: "Ожидает подтверждения",
-  confirmed: "Подтверждено",
-  checked_in: "Заселён",
-  checked_out: "Завершено",
-  completed: "Завершено",
-  cancelled: "Отменено",
-  rejected: "Отклонено",
+  pending: "mb.statusPending",
+  confirmed: "mb.statusConfirmed",
+  checked_in: "mb.statusCheckedIn",
+  checked_out: "mb.statusCompleted",
+  completed: "mb.statusCompleted",
+  cancelled: "mb.statusCancelled",
+  rejected: "mb.statusRejected",
 };
 
 const CANCELLABLE: BookingStatus[] = ["pending", "confirmed"];
@@ -186,7 +186,7 @@ export default function BookingsPage() {
                               : "bg-warning/20 text-warning-foreground"
                         }`}
                       >
-                        {td(STATUS_LABEL[b.status])}
+                        {t(STATUS_LABEL[b.status])}
                       </span>
                     </div>
                     <Link
