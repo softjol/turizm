@@ -36,6 +36,10 @@ def main() -> None:
             owner = User(name="seed-owner", role=Role.reception, is_active=True)
             db.add(owner)
             db.flush()
+        else:
+            owner.role = Role.reception
+            db.add(owner)
+            db.flush()
 
         types = [
             HotelType(name="Гостиница", slug="hotel"),
