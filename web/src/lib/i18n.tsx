@@ -144,6 +144,7 @@ const ru: Dict = {
   "detail.priceTimesNights": "{price} × {n} ночей",
   "detail.book": "Забронировать",
   "detail.noCharge": "Вы не будете списаны до подтверждения брони ресепшеном",
+  "detail.noRooms": "У этого объекта пока нет номеров",
   // Checkout
   "co.docTitle": "Оформление брони — MEIMAN",
   "co.stepConfirm": "Подтверждение",
@@ -196,6 +197,8 @@ const ru: Dict = {
   "fav.docTitle": "Избранное — MEIMAN",
   "fav.title": "Избранное",
   "fav.subtitle": "Сохранённые объекты для будущих поездок",
+  "fav.empty": "В избранном пока пусто",
+  "fav.emptyHint": "Нажмите на сердечко у объекта, чтобы сохранить его сюда",
 };
 
 const en: Dict = {
@@ -323,6 +326,7 @@ const en: Dict = {
   "detail.priceTimesNights": "{price} × {n} nights",
   "detail.book": "Book now",
   "detail.noCharge": "You won't be charged until the host confirms your booking",
+  "detail.noRooms": "This place has no rooms yet",
   "co.docTitle": "Checkout — MEIMAN",
   "co.stepConfirm": "Confirmation",
   "co.stepPay": "Deposit payment",
@@ -372,6 +376,8 @@ const en: Dict = {
   "fav.docTitle": "Favorites — MEIMAN",
   "fav.title": "Favorites",
   "fav.subtitle": "Saved stays for future trips",
+  "fav.empty": "No favorites yet",
+  "fav.emptyHint": "Tap the heart on a listing to save it here",
 };
 
 const ky: Dict = {
@@ -489,6 +495,7 @@ const ky: Dict = {
   "detail.priceTimesNights": "{price} × {n} түн",
   "detail.book": "Брондоо",
   "detail.noCharge": "Ресепшен брондоону ырастаганга чейин акча алынбайт",
+  "detail.noRooms": "Бул жайда азырынча бөлмөлөр жок",
   "co.stepConfirm": "Ырастоо",
   "co.stepPay": "Задаток төлөө",
   "co.stepDone": "Даяр",
@@ -535,6 +542,8 @@ const ky: Dict = {
   "mb.cancel": "Жокко чыгаруу",
   "fav.title": "Тандалмалар",
   "fav.subtitle": "Келечектеги саякаттар үчүн сакталган объекттер",
+  "fav.empty": "Тандалмалар азырынча жок",
+  "fav.emptyHint": "Сактоо үчүн объекттеги жүрөкчөнү басыңыз",
 };
 
 const dicts: Record<Lang, Dict> = { ru, en, ky };

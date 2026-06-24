@@ -19,7 +19,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { type Estate } from "@/lib/mock-data";
-import { getEstate } from "@/lib/api";
+import { getEstate, isFavorite, toggleFavorite } from "@/lib/api";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/lib/i18n";
 
@@ -87,16 +87,19 @@ export default function EstateDetail() {
 function EstateView({ estate }: { estate: Estate }) {
   const { t, td } = useI18n();
   useDocumentTitle(`${td(estate.name)} — MEIMAN`);
-  const [selectedRoom, setSelectedRoom] = useState(estate.rooms[0]);
+  const [selectedRoom, setSelectedRoom] = useState<(typeof estate.rooms)[number] | undefined>(
+    estate.rooms[0],
+  );
   const [checkIn, setCheckIn] = useState("2026-07-10");
   const [checkOut, setCheckOut] = useState("2026-07-14");
   const [guests, setGuests] = useState(2);
+  const [fav, setFav] = useState(() => isFavorite(Number(estate.id)));
 
   const nights = Math.max(
     1,
     Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000),
   );
-  const total = selectedRoom.price * nights;
+  const total = (selectedRoom?.price ?? 0) * nights;
   const deposit = Math.round(total * 0.3);
 
   return (
@@ -131,8 +134,14 @@ function EstateView({ estate }: { estate: Estate }) {
             <Button variant="outline" size="sm" className="gap-2">
               <Share2 className="h-4 w-4" /> {t("detail.share")}
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Heart className="h-4 w-4" /> {t("detail.favorite")}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => setFav(toggleFavorite(Number(estate.id)))}
+            >
+              <Heart className={`h-4 w-4 ${fav ? "fill-primary text-primary" : ""}`} />{" "}
+              {t("detail.favorite")}
             </Button>
           </div>
         </div>
@@ -178,12 +187,17 @@ function EstateView({ estate }: { estate: Estate }) {
             <section className="mt-10">
               <h2 className="font-display text-2xl font-bold">{t("detail.rooms")}</h2>
               <div className="mt-4 space-y-3">
+                {estate.rooms.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-border/70 bg-card p-6 text-center text-sm text-muted-foreground">
+                    {t("detail.noRooms")}
+                  </div>
+                )}
                 {estate.rooms.map((r: (typeof estate.rooms)[number]) => (
                   <button
                     key={r.id}
                     onClick={() => setSelectedRoom(r)}
                     className={`flex w-full gap-4 overflow-hidden rounded-2xl border bg-card p-2 text-left transition ${
-                      selectedRoom.id === r.id
+                      selectedRoom?.id === r.id
                         ? "border-primary shadow-[var(--shadow-soft)]"
                         : "border-border/70 hover:border-primary/50"
                     }`}
@@ -307,6 +321,10 @@ function EstateView({ estate }: { estate: Estate }) {
           {/* Booking widget */}
           <aside className="lg:sticky lg:top-20 lg:self-start">
             <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-card)]">
+              {!selectedRoom ? (
+                <div className="text-sm text-muted-foreground">{t("detail.noRooms")}</div>
+              ) : (
+              <>
               <div className="flex items-baseline gap-1">
                 <span className="font-display text-3xl font-extrabold">
                   {selectedRoom.price.toLocaleString("ru-RU")}
@@ -384,6 +402,8 @@ function EstateView({ estate }: { estate: Estate }) {
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 {t("detail.noCharge")}
               </p>
+              </>
+              )}
             </div>
           </aside>
         </div>

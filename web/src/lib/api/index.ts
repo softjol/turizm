@@ -8,4 +8,5 @@ export * from "./rooms";
 export * from "./reviews";
 export * from "./bookings";
 export * from "./estates";
+export * from "./favorites";
 export { getAccessToken, getRefreshToken, setTokens, clearTokens, type AuthTokens } from "./tokens";
