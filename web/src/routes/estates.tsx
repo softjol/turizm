@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { MapPin, Star, SlidersHorizontal, Search, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
@@ -21,9 +21,10 @@ import { useI18n } from "@/lib/i18n";
 export default function EstatesPage() {
   const { t, td } = useI18n();
   useDocumentTitle(t("catalog.docTitle"));
+  const [searchParams] = useSearchParams();
   const [estates, setEstates] = useState<Estate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [price, setPrice] = useState<number[]>([1000, 10000]);
   const [types, setTypes] = useState<EstateType[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);

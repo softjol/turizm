@@ -102,6 +102,26 @@ export async function getHotel(hotelId: number): Promise<Hotel> {
   return data;
 }
 
+/** Update a hotel's editable fields (PATCH /reception/hotels/{id}). */
+export async function updateHotel(
+  hotelId: number,
+  patch: Partial<HotelCreatePayload>,
+): Promise<Hotel> {
+  const { data } = await api.patch<Hotel>(`/reception/hotels/${hotelId}`, patch);
+  return data;
+}
+
+/** Delete a hotel (DELETE /hotels/{id} — admin only on the backend). */
+export async function deleteHotel(hotelId: number): Promise<void> {
+  await api.delete(`/hotels/${hotelId}`);
+}
+
+/** Hotels owned by the current reception/admin user (GET /reception/hotels). */
+export async function listReceptionHotels(): Promise<Hotel[]> {
+  const { data } = await api.get<Hotel[]>("/reception/hotels");
+  return data;
+}
+
 // --- "My hotels" tracking --------------------------------------------------
 //
 // The backend has no "list my hotels" endpoint yet, so we remember the ids of
@@ -127,6 +147,11 @@ export function addMyHotelId(id: number): void {
   if (!ids.includes(id)) {
     localStorage.setItem(MY_HOTELS_KEY, JSON.stringify([...ids, id]));
   }
+}
+
+export function removeMyHotelId(id: number): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(MY_HOTELS_KEY, JSON.stringify(getMyHotelIds().filter((x) => x !== id)));
 }
 
 /** Load all hotels created from this browser (newest first). */

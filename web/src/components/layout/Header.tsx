@@ -1,6 +1,7 @@
-import { Link, NavLink } from "react-router-dom";
-import { Bell, Globe, Menu, User, Check } from "lucide-react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Bell, Globe, Menu, User, Check, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -64,6 +65,13 @@ function LanguageMenu() {
 export function Header() {
   const [open, setOpen] = useState(false);
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const { isAuthenticated, hasRole, signOut } = useAuth();
+
+  async function handleLogout() {
+    await signOut();
+    navigate("/");
+  }
   const nav = [
     { to: "/estates", label: t("nav.estates") },
     { to: "/bookings", label: t("nav.bookings") },
@@ -112,25 +120,40 @@ export function Header() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem asChild>
-                <Link to="/auth">{t("menu.login")}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/profile">{t("menu.profile")}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/bookings">{t("menu.myBookings")}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/favorites">{t("menu.favorites")}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/host">{t("menu.hostPanel")}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/admin">{t("menu.adminPanel")}</Link>
-              </DropdownMenuItem>
+              {!isAuthenticated ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/auth">{t("menu.login")}</Link>
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">{t("menu.profile")}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/bookings">{t("menu.myBookings")}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/favorites">{t("menu.favorites")}</Link>
+                  </DropdownMenuItem>
+                  {hasRole("reception", "admin") && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/host">{t("menu.hostPanel")}</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {hasRole("admin") && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">{t("menu.adminPanel")}</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" /> {t("menu.logout")}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <Button

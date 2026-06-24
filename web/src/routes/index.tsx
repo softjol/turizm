@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   Star,
@@ -22,9 +22,25 @@ import { getEstates } from "@/lib/api";
 
 export default function HomePage() {
   const { t, td } = useI18n();
+  const navigate = useNavigate();
   useDocumentTitle(t("home.docTitle"));
 
   const [estates, setEstates] = useState<Estate[]>([]);
+
+  // Search-bar state (drives the /estates query on submit).
+  const [destination, setDestination] = useState("");
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [guests, setGuests] = useState(2);
+
+  function runSearch() {
+    const params = new URLSearchParams();
+    if (destination.trim()) params.set("q", destination.trim());
+    if (checkIn) params.set("checkIn", checkIn);
+    if (checkOut) params.set("checkOut", checkOut);
+    if (guests) params.set("guests", String(guests));
+    navigate(`/estates${params.toString() ? `?${params.toString()}` : ""}`);
+  }
 
   // Load the most-recent approved hotels for the "popular" section.
   useEffect(() => {
@@ -53,7 +69,7 @@ export default function HomePage() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/50 to-background" />
         </div>
-        <div className="container-app pb-20 pt-20 md:pb-32 md:pt-28">
+        <div className="container-app pb-10 pt-16 md:pb-14 md:pt-20">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -68,9 +84,15 @@ export default function HomePage() {
           </div>
 
           {/* Search bar */}
-          <div className="mt-10 rounded-2xl border border-border/70 bg-card p-2 shadow-[var(--shadow-card)] md:mt-12">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              runSearch();
+            }}
+            className="mt-6 rounded-2xl border border-border/70 bg-card p-2 shadow-[var(--shadow-card)] md:mt-8"
+          >
             <div className="grid items-center gap-2 md:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
-              <div className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
+              <label className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
                 <MapPin className="h-5 w-5 text-primary" />
                 <div className="flex-1">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -79,47 +101,64 @@ export default function HomePage() {
                   <input
                     className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground/70"
                     placeholder={t("search.destPlaceholder")}
-                    defaultValue="Сары-Челек"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
                   />
                 </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
+              </label>
+              <label className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
                 <CalendarIcon className="h-5 w-5 text-primary" />
-                <div>
+                <div className="flex-1">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {t("search.checkin")}
                   </div>
-                  <div className="text-sm font-medium">10 июля</div>
+                  <input
+                    type="date"
+                    className="w-full bg-transparent text-sm font-medium outline-none"
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                  />
                 </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
+              </label>
+              <label className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
                 <CalendarIcon className="h-5 w-5 text-primary" />
-                <div>
+                <div className="flex-1">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {t("search.checkout")}
                   </div>
-                  <div className="text-sm font-medium">14 июля</div>
+                  <input
+                    type="date"
+                    className="w-full bg-transparent text-sm font-medium outline-none"
+                    value={checkOut}
+                    min={checkIn || undefined}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                  />
                 </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
+              </label>
+              <label className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-muted/60">
                 <Users className="h-5 w-5 text-primary" />
-                <div>
+                <div className="flex-1">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {t("search.guests")}
                   </div>
-                  <div className="text-sm font-medium">{t("search.guestsValue")}</div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    className="w-full bg-transparent text-sm font-medium outline-none"
+                    value={guests}
+                    onChange={(e) => setGuests(Math.max(1, Number(e.target.value)))}
+                  />
                 </div>
-              </div>
-              <Button asChild size="lg" className="h-14 gap-2 rounded-xl px-7">
-                <Link to="/estates">
-                  <Search className="h-4 w-4" /> {t("search.find")}
-                </Link>
+              </label>
+              <Button type="submit" size="lg" className="h-14 gap-2 rounded-xl px-7">
+                <Search className="h-4 w-4" /> {t("search.find")}
               </Button>
             </div>
-          </div>
+          </form>
 
           {/* Quick filters */}
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             {categories.map((c) => (
               <Link
                 key={c.type}
@@ -135,7 +174,7 @@ export default function HomePage() {
       </section>
 
       {/* Benefits */}
-      <section className="container-app py-16">
+      <section className="container-app py-10">
         <div className="grid gap-6 md:grid-cols-3">
           {[
             {
