@@ -1,22 +1,3 @@
-# ---- OS / editor ----
-.DS_Store
-.idea/
-.vscode/*
-!.vscode/extensions.json
-
-# ---- Python (backend) ----
-__pycache__/
-*.py[cod]
-*$py.class
 .venv/
-venv/
+.idea/
 .env
-*.log
-
-# ---- Node (web) ----
-node_modules/
-dist/
-dist-ssr/
-*.local
-.env.*
-!.env.example
