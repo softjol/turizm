@@ -24,14 +24,14 @@ from app.repositories.booking import BookingRepository
 from app.dependencies.dependencies import get_current_user, require_role
 from app.models.user import User
 
-router = APIRouter(prefix="/reception", tags=["Reception"])
+router = APIRouter(tags=["Reception"])
 
 def get_is_admin(user: User) -> bool:
     from app.models.user import Role
     return user.role == Role.admin
 
 # === Dashboard & Finance ===
-@router.get("/hotels/{hotel_id}/dashboard", response_model=ReceptionDashboardResponse)
+@router.get("/reception/hotels/{hotel_id}/dashboard", response_model=ReceptionDashboardResponse)
 async def get_reception_dashboard(
     hotel_id: int,
     target_date: datetime.date = Query(..., description="Date to fetch dashboard metrics for"),
@@ -44,7 +44,7 @@ async def get_reception_dashboard(
     # Для упрощения MVP предполагается, что сервис/репозиторий сам отфильтрует, или добавим ручную проверку.
     return await DashboardService.get_reception_dashboard(db, hotel_id, target_date)
 
-@router.get("/hotels/{hotel_id}/finance", response_model=ReceptionFinanceResponse)
+@router.get("/reception/hotels/{hotel_id}/finance", response_model=ReceptionFinanceResponse)
 async def get_reception_finance(
     hotel_id: int,
     db: AsyncSession = Depends(get_db),
