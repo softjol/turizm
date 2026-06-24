@@ -54,20 +54,12 @@ async def get_reception_finance(
     return await DashboardService.get_reception_finance(db, hotel_id)
 
 # === Hotel Management ===
-@router.get("/reception/hotels", response_model=list[HotelResponse])
+@router.get("/hotels", response_model=list[HotelResponse])
 async def get_my_hotels(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("reception", "admin"))
 ):
     return await HotelService.get_hotels_by_owner(current_user.id, db)
-
-@router.post("/hotels", response_model=HotelResponse, status_code=201)
-async def create_hotel(
-    req: HotelCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("reception", "admin"))
-):
-    return await HotelService.create_hotel(current_user.id, req, db)
 
 @router.patch("/hotels/{hotel_id}", response_model=HotelResponse)
 async def update_hotel(
@@ -77,15 +69,6 @@ async def update_hotel(
     current_user: User = Depends(require_role("reception", "admin"))
 ):
     return await HotelService.update_hotel(hotel_id, current_user.id, get_is_admin(current_user), req, db)
-
-@router.put("/hotels/{hotel_id}/amenities", response_model=HotelResponse)
-async def set_hotel_amenities(
-    hotel_id: int,
-    req: HotelAmenitiesUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("reception", "admin"))
-):
-    return await HotelService.set_amenities(hotel_id, current_user.id, get_is_admin(current_user), req.amenity_ids, db)
 
 @router.post("/hotels/{hotel_id}/images", response_model=ImageResponse, status_code=201)
 async def upload_hotel_image(

@@ -39,8 +39,12 @@ class HotelService:
             rating=0.0
         )
         await HotelRepository.create(hotel, db)
+        hotel_id = hotel.id  # populated by flush() inside create(), read before commit expires it
         await db.commit()
-        return hotel
+        # Re-fetch with relations eagerly loaded so the HotelResponse serialization
+        # (hotel_type / images / amenities) doesn't trigger a lazy load on a detached/expired
+        # object -> MissingGreenlet under async SQLAlchemy.
+        return await HotelRepository.get_by_id_with_relations(hotel_id, db)
 
     @classmethod
     async def update_hotel(cls, hotel_id: int, user_id: int, is_admin: bool, req: HotelUpdate, db: AsyncSession) -> Hotel:

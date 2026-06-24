@@ -1,13 +1,15 @@
 import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies.dependencies import get_db
-from app.schemas.hotel import HotelResponse
+from app.dependencies.dependencies import get_db, require_role
+from app.schemas.hotel import HotelResponse, HotelCreate, HotelAmenitiesUpdate
 from app.schemas.room import RoomResponse
 from app.schemas.review import ReviewResponse
 from app.repositories.hotel import HotelRepository
 from app.repositories.room import RoomRepository
 from app.repositories.review import ReviewRepository
+from app.services.hotel import HotelService
+from app.models.user import User, Role
 
 router = APIRouter(prefix="/hotels", tags=["Hotels (Public)"])
 
@@ -40,6 +42,26 @@ async def search_hotels(
         limit=limit
     )
     return hotels
+
+@router.post("", response_model=HotelResponse, status_code=201)
+async def create_hotel(
+    req: HotelCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("reception", "admin"))
+):
+    """Создание гостиницы (reception/admin). По ТЗ путь: POST /api/v1/hotels."""
+    return await HotelService.create_hotel(current_user.id, req, db)
+
+@router.put("/{hotel_id}/amenities", response_model=HotelResponse)
+async def set_hotel_amenities(
+    hotel_id: int,
+    req: HotelAmenitiesUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("reception", "admin"))
+):
+    """Замена набора удобств гостиницы (reception/admin)."""
+    is_admin = current_user.role == Role.admin
+    return await HotelService.set_amenities(hotel_id, current_user.id, is_admin, req.amenity_ids, db)
 
 @router.get("/{hotel_id}", response_model=HotelResponse)
 async def get_hotel(hotel_id: int, db: AsyncSession = Depends(get_db)):
