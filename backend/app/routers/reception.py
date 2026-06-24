@@ -54,7 +54,7 @@ async def get_reception_finance(
     return await DashboardService.get_reception_finance(db, hotel_id)
 
 # === Hotel Management ===
-@router.get("/hotels", response_model=list[HotelResponse])
+@router.get("/reception/hotels", response_model=list[HotelResponse])
 async def get_my_hotels(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("reception", "admin"))
