@@ -92,6 +92,17 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
   const [checkOut, setCheckOut] = useState("2026-07-14");
   const [guests, setGuests] = useState(2);
   const [fav, setFav] = useState(() => isFavorite(Number(estate.id)));
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
 
   const nights = Math.max(
     1,
@@ -129,8 +140,9 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Share2 className="h-4 w-4" /> {t("detail.share")}
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleShare}>
+              {copied ? <Check className="h-4 w-4 text-success" /> : <Share2 className="h-4 w-4" />}{" "}
+              {copied ? t("detail.linkCopied") : t("detail.share")}
             </Button>
             <Button
               variant="outline"

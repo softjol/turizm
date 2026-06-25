@@ -16,6 +16,7 @@ export function ReviewForm({ hotelId, onSubmitted }: { hotelId: number; onSubmit
   const { t } = useI18n();
   const { isAuthenticated } = useAuth();
   const [bookingId, setBookingId] = useState<number | null>(null);
+  const [checked, setChecked] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -35,11 +36,13 @@ export function ReviewForm({ hotelId, onSubmitted }: { hotelId: number; onSubmit
           const room = await getRoom(b.room_id).catch(() => null);
           if (room && room.hotel_id === hotelId) {
             if (active) setBookingId(b.id);
-            return;
+            break;
           }
         }
       } catch {
-        /* ignore — just don't show the form */
+        /* ignore */
+      } finally {
+        if (active) setChecked(true);
       }
     })();
     return () => {
@@ -47,12 +50,27 @@ export function ReviewForm({ hotelId, onSubmitted }: { hotelId: number; onSubmit
     };
   }, [isAuthenticated, hotelId]);
 
-  if (!isAuthenticated || bookingId === null) return null;
-
+  // Not logged in → a small hint so the section is discoverable.
+  if (!isAuthenticated) {
+    return (
+      <div className="mt-4 rounded-2xl border border-dashed border-border/70 bg-card p-4 text-sm text-muted-foreground">
+        {t("rv.loginToReview")}
+      </div>
+    );
+  }
   if (done) {
     return (
       <div className="mt-4 rounded-2xl border border-success/40 bg-success/10 p-4 text-sm text-success">
         {t("rv.thanks")}
+      </div>
+    );
+  }
+  if (!checked) return null; // still loading bookings
+  // Logged in but no completed stay here → explain where the review is (ТЗ rule).
+  if (bookingId === null) {
+    return (
+      <div className="mt-4 rounded-2xl border border-dashed border-border/70 bg-card p-4 text-sm text-muted-foreground">
+        {t("rv.needStay")}
       </div>
     );
   }
