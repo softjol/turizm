@@ -56,6 +56,20 @@ export async function createRoom(
   return data;
 }
 
+/** Update a room (reception) — PATCH /reception/rooms/{id}. */
+export async function updateRoom(
+  roomId: number,
+  patch: Partial<RoomCreatePayload> & { status?: RoomStatus },
+): Promise<RoomResponse> {
+  const { data } = await api.patch<RoomResponse>(`/reception/rooms/${roomId}`, patch);
+  return data;
+}
+
+/** Delete a room (reception) — DELETE /reception/rooms/{id}. */
+export async function deleteRoom(roomId: number): Promise<void> {
+  await api.delete(`/reception/rooms/${roomId}`);
+}
+
 export interface RoomCalendar {
   room_id: number;
   occupied_periods: { date_from: string; date_to: string }[];

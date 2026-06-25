@@ -8,6 +8,8 @@ import {
   listReceptionHotels,
   getHotelRooms,
   createRoom,
+  updateRoom,
+  deleteRoom,
   mediaUrl,
   type RoomResponse,
   type RoomType,
@@ -30,6 +32,8 @@ export default function HostRooms() {
   const [rooms, setRooms] = useState<RoomResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<RoomResponse | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -58,6 +62,24 @@ export default function HostRooms() {
   function onCreated(room: RoomResponse) {
     setRooms((prev) => [...prev, room]);
     setShowForm(false);
+  }
+
+  function onUpdated(room: RoomResponse) {
+    setRooms((prev) => prev.map((r) => (r.id === room.id ? room : r)));
+    setEditing(null);
+  }
+
+  async function handleDelete(room: RoomResponse) {
+    if (!window.confirm(t("hrm.deleteConfirm", { name: room.name }))) return;
+    setBusy(room.id);
+    try {
+      await deleteRoom(room.id);
+      setRooms((prev) => prev.filter((r) => r.id !== room.id));
+    } catch (err) {
+      console.error("[host.rooms] delete failed", err);
+    } finally {
+      setBusy(null);
+    }
   }
 
   return (
@@ -127,16 +149,23 @@ export default function HostRooms() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
+                    onClick={() => setEditing(r)}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:border-primary"
                     aria-label={t("ho.edit")}
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-destructive hover:border-destructive"
+                    onClick={() => handleDelete(r)}
+                    disabled={busy === r.id}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-destructive hover:border-destructive disabled:opacity-50"
                     aria-label={t("ho.delete")}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {busy === r.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -145,13 +174,18 @@ export default function HostRooms() {
         </div>
       )}
 
-      {showForm && hotelId !== null && (
+      {(showForm || editing) && hotelId !== null && (
         <RoomForm
           hotelId={hotelId}
           hotels={hotels}
           onPickHotel={setHotelId}
-          onClose={() => setShowForm(false)}
+          editRoom={editing}
+          onClose={() => {
+            setShowForm(false);
+            setEditing(null);
+          }}
           onCreated={onCreated}
+          onUpdated={onUpdated}
         />
       )}
     </div>
@@ -162,23 +196,27 @@ function RoomForm({
   hotelId,
   hotels,
   onPickHotel,
+  editRoom,
   onClose,
   onCreated,
+  onUpdated,
 }: {
   hotelId: number;
   hotels: Hotel[];
   onPickHotel: (id: number) => void;
+  editRoom: RoomResponse | null;
   onClose: () => void;
   onCreated: (r: RoomResponse) => void;
+  onUpdated: (r: RoomResponse) => void;
 }) {
   const { t } = useI18n();
-  const [number, setNumber] = useState("");
-  const [name, setName] = useState("");
-  const [type, setType] = useState<RoomType>("standard");
-  const [price, setPrice] = useState("");
-  const [adults, setAdults] = useState("2");
-  const [children, setChildren] = useState("0");
-  const [description, setDescription] = useState("");
+  const [number, setNumber] = useState(editRoom?.room_number ?? "");
+  const [name, setName] = useState(editRoom?.name ?? "");
+  const [type, setType] = useState<RoomType>(editRoom?.type ?? "standard");
+  const [price, setPrice] = useState(editRoom ? String(editRoom.price_per_night) : "");
+  const [adults, setAdults] = useState(editRoom ? String(editRoom.capacity_adults) : "2");
+  const [children, setChildren] = useState(editRoom ? String(editRoom.capacity_children) : "0");
+  const [description, setDescription] = useState(editRoom?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -190,7 +228,7 @@ function RoomForm({
     }
     setSaving(true);
     try {
-      const room = await createRoom(hotelId, {
+      const payload = {
         room_number: number.trim(),
         name: name.trim(),
         type,
@@ -198,8 +236,12 @@ function RoomForm({
         capacity_adults: Number(adults) || 1,
         capacity_children: Number(children) || 0,
         description: description.trim(),
-      });
-      onCreated(room);
+      };
+      if (editRoom) {
+        onUpdated(await updateRoom(editRoom.id, payload));
+      } else {
+        onCreated(await createRoom(hotelId, payload));
+      }
     } catch (err) {
       setError(
         isAxiosError(err)
@@ -215,7 +257,9 @@ function RoomForm({
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/40 p-4 backdrop-blur-sm">
       <div className="my-8 w-full max-w-2xl rounded-3xl border border-border/70 bg-card p-6 shadow-[var(--shadow-card)] md:p-8">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-extrabold">{t("hrm.addTitle")}</h2>
+          <h2 className="font-display text-xl font-extrabold">
+            {editRoom ? t("hrm.editTitle") : t("hrm.addTitle")}
+          </h2>
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:border-primary"
@@ -232,7 +276,7 @@ function RoomForm({
         )}
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          {hotels.length > 1 && (
+          {!editRoom && hotels.length > 1 && (
             <Field label={t("hrm.hotel")}>
               <select
                 value={hotelId}
