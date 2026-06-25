@@ -1,43 +1,48 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, X, ImageIcon, Upload, Loader2 } from "lucide-react";
+import { isAxiosError } from "axios";
+import { Plus, Edit2, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { listReceptionHotels, getHotelRooms, type RoomResponse } from "@/lib/api";
+import {
+  listReceptionHotels,
+  getHotelRooms,
+  createRoom,
+  type RoomResponse,
+  type RoomType,
+  type Hotel,
+} from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
-const ROOM_TYPE_KEYS = [
-  "hrm.typeStandard",
-  "hrm.typeSemiLux",
-  "hrm.typeLux",
-  "hrm.typeFamily",
-  "hrm.typeDorm",
-];
-const ROOM_AMENITY_KEYS = [
-  "hrm.amWifi",
-  "hrm.amTv",
-  "hrm.amAc",
-  "hrm.amShower",
-  "hrm.amBalcony",
-  "hrm.amFridge",
-  "hrm.amKitchen",
+const ROOM_TYPES: { value: RoomType; labelKey: string }[] = [
+  { value: "standard", labelKey: "hrm.typeStandard" },
+  { value: "semi_lux", labelKey: "hrm.typeSemiLux" },
+  { value: "lux", labelKey: "hrm.typeLux" },
+  { value: "family", labelKey: "hrm.typeFamily" },
+  { value: "dorm", labelKey: "hrm.typeDorm" },
 ];
 
 export default function HostRooms() {
   const { t } = useI18n();
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [hotelId, setHotelId] = useState<number | null>(null);
   const [rooms, setRooms] = useState<RoomResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const hotels = await listReceptionHotels();
+        const hs = await listReceptionHotels();
+        if (!active) return;
+        setHotels(hs);
         const all: RoomResponse[] = [];
-        for (const h of hotels) all.push(...(await getHotelRooms(h.id).catch(() => [])));
-        if (active) setRooms(all);
+        for (const h of hs) all.push(...(await getHotelRooms(h.id).catch(() => [])));
+        if (active) {
+          setRooms(all);
+          setHotelId(hs[0]?.id ?? null);
+        }
       } catch (err) {
         console.error("[host.rooms] load failed", err);
       } finally {
@@ -49,6 +54,11 @@ export default function HostRooms() {
     };
   }, []);
 
+  function onCreated(room: RoomResponse) {
+    setRooms((prev) => [...prev, room]);
+    setShowForm(false);
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -56,7 +66,11 @@ export default function HostRooms() {
           <h1 className="font-display text-3xl font-extrabold">{t("hrm.title")}</h1>
           <p className="mt-1 text-muted-foreground">{t("hrm.subtitle")}</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2 rounded-xl">
+        <Button
+          onClick={() => setShowForm(true)}
+          disabled={hotelId === null}
+          className="gap-2 rounded-xl"
+        >
           <Plus className="h-4 w-4" /> {t("hrm.add")}
         </Button>
       </div>
@@ -102,9 +116,7 @@ export default function HostRooms() {
                   <div className="mt-2 font-display text-lg font-bold">{r.name}</div>
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.description}</p>
                   <div className="mt-2 flex flex-wrap gap-4 text-sm">
-                    <span>
-                      👤 {t("hrm.upTo", { n: r.capacity_adults + r.capacity_children })}
-                    </span>
+                    <span>👤 {t("hrm.upTo", { n: r.capacity_adults + r.capacity_children })}</span>
                     <span>
                       {Number(r.price_per_night).toLocaleString("ru-RU")} {t("common.kgs")} /{" "}
                       {t("hrm.perNight")}
@@ -131,104 +143,177 @@ export default function HostRooms() {
         </div>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/40 p-4 backdrop-blur-sm">
-          <div className="my-8 w-full max-w-2xl rounded-3xl border border-border/70 bg-card p-6 shadow-[var(--shadow-card)] md:p-8">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-extrabold">{t("hrm.addTitle")}</h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:border-primary"
-                aria-label={t("hrm.close")}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
-              <Field label={t("hrm.number")}>
-                <Input placeholder="101" />
-              </Field>
-              <Field label={t("hrm.name")}>
-                <Input placeholder={t("hrm.namePh")} />
-              </Field>
-              <Field label={t("hrm.type")}>
-                <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  {ROOM_TYPE_KEYS.map((k) => (
-                    <option key={k}>{t(k)}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label={t("hrm.price")}>
-                <Input type="number" placeholder="3500" />
-              </Field>
-              <Field label={t("hrm.adults")}>
-                <Input type="number" defaultValue="2" min={1} />
-              </Field>
-              <Field label={t("hrm.children")}>
-                <Input type="number" defaultValue="0" min={0} />
-              </Field>
-            </div>
-
-            <div className="mt-5">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t("hrm.amenities")}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {ROOM_AMENITY_KEYS.map((k) => {
-                  const label = t(k);
-                  const active = selected.includes(k);
-                  return (
-                    <button
-                      key={k}
-                      onClick={() =>
-                        setSelected((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]))
-                      }
-                      className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                        active
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <Field label={t("hrm.descLabel")}>
-                <Textarea rows={4} placeholder={t("hrm.descPh")} />
-              </Field>
-            </div>
-
-            <div className="mt-5">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t("hrm.photos")}
-              </div>
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-surface p-8 transition hover:border-primary hover:bg-accent/40">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                </span>
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                  <Upload className="h-4 w-4" /> {t("hrm.uploadPhoto")}
-                </span>
-                <input type="file" multiple accept="image/*" className="hidden" />
-              </label>
-            </div>
-
-            <div className="mt-8 flex justify-end gap-2 border-t border-border/70 pt-5">
-              <Button variant="outline" onClick={() => setShowForm(false)}>
-                {t("hrm.cancel")}
-              </Button>
-              <Button onClick={() => setShowForm(false)} className="rounded-xl">
-                {t("hrm.save")}
-              </Button>
-            </div>
-          </div>
-        </div>
+      {showForm && hotelId !== null && (
+        <RoomForm
+          hotelId={hotelId}
+          hotels={hotels}
+          onPickHotel={setHotelId}
+          onClose={() => setShowForm(false)}
+          onCreated={onCreated}
+        />
       )}
+    </div>
+  );
+}
+
+function RoomForm({
+  hotelId,
+  hotels,
+  onPickHotel,
+  onClose,
+  onCreated,
+}: {
+  hotelId: number;
+  hotels: Hotel[];
+  onPickHotel: (id: number) => void;
+  onClose: () => void;
+  onCreated: (r: RoomResponse) => void;
+}) {
+  const { t } = useI18n();
+  const [number, setNumber] = useState("");
+  const [name, setName] = useState("");
+  const [type, setType] = useState<RoomType>("standard");
+  const [price, setPrice] = useState("");
+  const [adults, setAdults] = useState("2");
+  const [children, setChildren] = useState("0");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setError(null);
+    if (number.trim().length < 1 || name.trim().length < 2 || description.trim().length < 5) {
+      setError(t("hrm.validation"));
+      return;
+    }
+    setSaving(true);
+    try {
+      const room = await createRoom(hotelId, {
+        room_number: number.trim(),
+        name: name.trim(),
+        type,
+        price_per_night: Number(price) || 0,
+        capacity_adults: Number(adults) || 1,
+        capacity_children: Number(children) || 0,
+        description: description.trim(),
+      });
+      onCreated(room);
+    } catch (err) {
+      setError(
+        isAxiosError(err)
+          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
+          : t("hrm.validation"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/40 p-4 backdrop-blur-sm">
+      <div className="my-8 w-full max-w-2xl rounded-3xl border border-border/70 bg-card p-6 shadow-[var(--shadow-card)] md:p-8">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-extrabold">{t("hrm.addTitle")}</h2>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:border-primary"
+            aria-label={t("hrm.close")}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          {hotels.length > 1 && (
+            <Field label={t("hrm.hotel")}>
+              <select
+                value={hotelId}
+                onChange={(e) => onPickHotel(Number(e.target.value))}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {hotels.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          <Field label={t("hrm.number")}>
+            <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="101" />
+          </Field>
+          <Field label={t("hrm.name")}>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("hrm.namePh")}
+            />
+          </Field>
+          <Field label={t("hrm.type")}>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as RoomType)}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {ROOM_TYPES.map((rt) => (
+                <option key={rt.value} value={rt.value}>
+                  {t(rt.labelKey)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t("hrm.price")}>
+            <Input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="3500"
+            />
+          </Field>
+          <Field label={t("hrm.adults")}>
+            <Input
+              type="number"
+              value={adults}
+              onChange={(e) => setAdults(e.target.value)}
+              min={1}
+            />
+          </Field>
+          <Field label={t("hrm.children")}>
+            <Input
+              type="number"
+              value={children}
+              onChange={(e) => setChildren(e.target.value)}
+              min={0}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-5">
+          <Field label={t("hrm.descLabel")}>
+            <Textarea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("hrm.descPh")}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-8 flex justify-end gap-2 border-t border-border/70 pt-5">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            {t("hrm.cancel")}
+          </Button>
+          <Button onClick={handleSave} disabled={saving} className="rounded-xl">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("hrm.save")}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

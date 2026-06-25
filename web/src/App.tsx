@@ -8,6 +8,7 @@ import CheckoutPage from "./routes/checkout";
 import BookingsPage from "./routes/bookings";
 import FavoritesPage from "./routes/favorites";
 import ProfilePage from "./routes/profile";
+import NotificationsPage from "./routes/notifications";
 
 import HostLayout from "./routes/host";
 import HostDashboard from "./routes/host.index";
@@ -70,6 +71,7 @@ export default function App() {
       <Route path="/bookings" element={<BookingsPage />} />
       <Route path="/favorites" element={<FavoritesPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
 
       <Route path="/host" element={<HostLayout />}>
         <Route index element={<HostDashboard />} />

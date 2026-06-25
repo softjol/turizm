@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
-import { Edit2, Trash2, Loader2 } from "lucide-react";
-import { getAmenities, type AmenityResponse } from "@/lib/api";
+import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getAmenities, createAmenity, deleteAmenity, type AmenityResponse } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+
+const slugify = (s: string) =>
+  s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zа-я0-9-]/gi, "");
 
 export default function AdminAmenities() {
   const { t } = useI18n();
   const [items, setItems] = useState<AmenityResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     getAmenities()
@@ -15,10 +26,41 @@ export default function AdminAmenities() {
       .finally(() => setLoading(false));
   }, []);
 
+  async function add() {
+    const n = name.trim();
+    if (n.length < 2) return;
+    setBusy(true);
+    try {
+      const created = await createAmenity(n, slugify(n) || `amenity-${Date.now()}`);
+      setItems((prev) => [...prev, created]);
+      setName("");
+    } catch (err) {
+      console.error("[admin.amenities] create failed", err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: number) {
+    try {
+      await deleteAmenity(id);
+      setItems((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      console.error("[admin.amenities] delete failed", err);
+    }
+  }
+
   return (
     <div>
       <h1 className="font-display text-3xl font-extrabold">{t("ad.navAmenities")}</h1>
       <p className="mt-1 text-muted-foreground">{t("ad.amenitiesSubtitle")}</p>
+
+      <div className="mt-6 flex max-w-md gap-2">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("ad.newAmenity")} />
+        <Button onClick={add} disabled={busy} className="gap-1 rounded-xl">
+          <Plus className="h-4 w-4" /> {t("ad.add")}
+        </Button>
+      </div>
 
       {loading ? (
         <div className="mt-10 flex items-center justify-center gap-2 text-muted-foreground">
@@ -32,20 +74,13 @@ export default function AdminAmenities() {
               className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card px-5 py-4"
             >
               <span className="font-medium">{a.name}</span>
-              <div className="flex gap-1.5">
-                <button
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:border-primary"
-                  aria-label={t("ho.edit")}
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-destructive hover:border-destructive"
-                  aria-label={t("ho.delete")}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <button
+                onClick={() => remove(a.id)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-destructive hover:border-destructive"
+                aria-label={t("ho.delete")}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
             </div>
           ))}
         </div>

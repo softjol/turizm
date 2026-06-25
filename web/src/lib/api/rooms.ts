@@ -35,3 +35,40 @@ export async function getRoom(roomId: number): Promise<RoomResponse> {
   const { data } = await api.get<RoomResponse>(`/rooms/${roomId}`);
   return data;
 }
+
+/** Body for POST /api/v1/reception/hotels/{id}/rooms (RoomCreate). */
+export interface RoomCreatePayload {
+  room_number: string;
+  name: string;
+  type?: RoomType;
+  price_per_night: number;
+  capacity_adults?: number;
+  capacity_children?: number;
+  description: string;
+}
+
+/** Create a room in a hotel (reception). */
+export async function createRoom(
+  hotelId: number,
+  payload: RoomCreatePayload,
+): Promise<RoomResponse> {
+  const { data } = await api.post<RoomResponse>(`/reception/hotels/${hotelId}/rooms`, payload);
+  return data;
+}
+
+export interface RoomCalendar {
+  room_id: number;
+  occupied_periods: { date_from: string; date_to: string }[];
+}
+
+/** GET /api/v1/rooms/{id}/calendar?start_date&end_date — occupancy periods. */
+export async function getRoomCalendar(
+  roomId: number,
+  startDate: string,
+  endDate: string,
+): Promise<RoomCalendar> {
+  const { data } = await api.get<RoomCalendar>(`/rooms/${roomId}/calendar`, {
+    params: { start_date: startDate, end_date: endDate },
+  });
+  return data;
+}

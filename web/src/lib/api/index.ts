@@ -10,4 +10,5 @@ export * from "./bookings";
 export * from "./estates";
 export * from "./favorites";
 export * from "./admin";
+export * from "./notifications";
 export { getAccessToken, getRefreshToken, setTokens, clearTokens, type AuthTokens } from "./tokens";

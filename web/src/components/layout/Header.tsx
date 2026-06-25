@@ -103,12 +103,15 @@ export function Header() {
         <div className="flex items-center gap-1.5">
           <LanguageMenu />
           <Button
+            asChild
             variant="ghost"
             size="icon"
             className="rounded-full"
             aria-label={t("a11y.notifications")}
           >
-            <Bell className="h-5 w-5" />
+            <Link to="/notifications">
+              <Bell className="h-5 w-5" />
+            </Link>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

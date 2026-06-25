@@ -29,10 +29,14 @@ export default function HostObjects() {
   const STATUS_LABEL: Record<Hotel["status"], string> = {
     pending: t("status.pending"),
     approved: t("status.approved"),
+    rejected: t("status.rejected"),
+    blocked: t("status.blocked"),
   };
   const STATUS_CLASS: Record<Hotel["status"], string> = {
     pending: "bg-warning/15 text-warning",
     approved: "bg-success/15 text-success",
+    rejected: "bg-destructive/15 text-destructive",
+    blocked: "bg-destructive/15 text-destructive",
   };
 
   useEffect(() => {

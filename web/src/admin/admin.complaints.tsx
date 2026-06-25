@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
-import { Eye, X, Building2, UserX, Loader2 } from "lucide-react";
+import { Check, X, Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getComplaints, type ComplaintResponse } from "@/lib/api";
+import {
+  getComplaints,
+  updateComplaintStatus,
+  moderateHotel,
+  type ComplaintResponse,
+} from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 export default function AdminComplaints() {
   const { t } = useI18n();
   const [items, setItems] = useState<ComplaintResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<number | null>(null);
 
   useEffect(() => {
     getComplaints()
@@ -15,6 +21,30 @@ export default function AdminComplaints() {
       .catch((err) => console.error("[admin.complaints] load failed", err))
       .finally(() => setLoading(false));
   }, []);
+
+  async function setStatus(id: number, status: string) {
+    setBusy(id);
+    try {
+      const updated = await updateComplaintStatus(id, status);
+      setItems((prev) => prev.map((c) => (c.id === id ? { ...c, status: updated.status } : c)));
+    } catch (err) {
+      console.error("[admin.complaints] status failed", err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function blockHotel(c: ComplaintResponse) {
+    setBusy(c.id);
+    try {
+      if (c.target_type === "hotel") await moderateHotel(c.target_id, "blocked");
+      await setStatus(c.id, "resolved");
+    } catch (err) {
+      console.error("[admin.complaints] block failed", err);
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div>
@@ -60,18 +90,35 @@ export default function AdminComplaints() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      <Button size="sm" variant="ghost" className="h-8 gap-1">
-                        <Eye className="h-3.5 w-3.5" /> {t("ad.review")}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 gap-1"
+                        disabled={busy === c.id}
+                        onClick={() => setStatus(c.id, "resolved")}
+                      >
+                        <Check className="h-3.5 w-3.5" /> {t("ad.resolve")}
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 gap-1"
+                        disabled={busy === c.id}
+                        onClick={() => setStatus(c.id, "rejected")}
+                      >
                         <X className="h-3.5 w-3.5" /> {t("hb.reject")}
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 gap-1 text-destructive">
-                        <Building2 className="h-3.5 w-3.5" /> {t("ad.blockHotel")}
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 gap-1 text-destructive">
-                        <UserX className="h-3.5 w-3.5" /> {t("ad.blockUser")}
-                      </Button>
+                      {c.target_type === "hotel" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 gap-1 text-destructive"
+                          disabled={busy === c.id}
+                          onClick={() => blockHotel(c)}
+                        >
+                          <Building2 className="h-3.5 w-3.5" /> {t("ad.blockHotel")}
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

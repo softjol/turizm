@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Shield, Ban, Trash2, Loader2 } from "lucide-react";
+import { Search, Ban, Trash2, Loader2, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getUsers, type User } from "@/lib/api";
+import {
+  getUsers,
+  updateUserRole,
+  setUserActive,
+  deleteUser,
+  type User,
+  type Role,
+} from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+
+const ROLES: Role[] = ["user", "reception", "admin"];
 
 export default function AdminUsers() {
   const { t } = useI18n();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [busy, setBusy] = useState<number | null>(null);
 
   useEffect(() => {
     getUsers()
@@ -17,6 +27,45 @@ export default function AdminUsers() {
       .catch((err) => console.error("[admin.users] load failed", err))
       .finally(() => setLoading(false));
   }, []);
+
+  async function changeRole(id: number, role: Role) {
+    setBusy(id);
+    try {
+      const u = await updateUserRole(id, role);
+      setUsers((prev) => prev.map((x) => (x.id === id ? { ...x, role: u.role } : x)));
+    } catch (err) {
+      console.error("[admin.users] role failed", err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleActive(u: User) {
+    setBusy(u.id);
+    try {
+      const updated = await setUserActive(u.id, !u.is_active);
+      setUsers((prev) =>
+        prev.map((x) => (x.id === u.id ? { ...x, is_active: updated.is_active } : x)),
+      );
+    } catch (err) {
+      console.error("[admin.users] block failed", err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(u: User) {
+    if (!window.confirm(t("ho.deleteConfirm", { name: u.name }))) return;
+    setBusy(u.id);
+    try {
+      await deleteUser(u.id);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+    } catch (err) {
+      console.error("[admin.users] delete failed", err);
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,9 +115,18 @@ export default function AdminUsers() {
                   <td className="px-5 py-4 font-semibold">{u.name}</td>
                   <td className="px-5 py-4">{u.whatsapp_phone_number ?? "—"}</td>
                   <td className="px-5 py-4">
-                    <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground">
-                      {t(`role.${u.role}`)}
-                    </span>
+                    <select
+                      value={u.role}
+                      disabled={busy === u.id}
+                      onChange={(e) => changeRole(u.id, e.target.value as Role)}
+                      className="rounded-md border border-input bg-background px-2 py-1 text-xs font-semibold"
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {t(`role.${r}`)}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-5 py-4">
                     <span
@@ -79,13 +137,30 @@ export default function AdminUsers() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-1.5">
-                      <Button size="sm" variant="ghost" className="h-8 gap-1">
-                        <Shield className="h-3.5 w-3.5" /> {t("ad.role")}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 gap-1"
+                        disabled={busy === u.id}
+                        onClick={() => toggleActive(u)}
+                      >
+                        {u.is_active ? (
+                          <>
+                            <Ban className="h-3.5 w-3.5" /> {t("ad.block")}
+                          </>
+                        ) : (
+                          <>
+                            <Check className="h-3.5 w-3.5" /> {t("ad.unblock")}
+                          </>
+                        )}
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 gap-1">
-                        <Ban className="h-3.5 w-3.5" /> {t("ad.block")}
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-destructive"
+                        disabled={busy === u.id}
+                        onClick={() => remove(u)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ReviewForm } from "@/components/ReviewForm";
 import {
   MapPin,
   Star,
@@ -37,29 +38,25 @@ export default function EstateDetail() {
   const [estate, setEstate] = useState<Estate | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     const hotelId = Number(id);
     if (!Number.isFinite(hotelId)) {
       setLoading(false);
       return;
     }
-    let active = true;
-    setLoading(true);
     getEstate(hotelId)
-      .then((e) => {
-        if (active) setEstate(e);
-      })
+      .then((e) => setEstate(e))
       .catch((err) => {
         console.error("[detail] failed to load estate", err);
-        if (active) setEstate(null);
+        setEstate(null);
       })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+      .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    setLoading(true);
+    reload();
+  }, [reload]);
 
   if (loading) {
     return (
@@ -82,10 +79,10 @@ export default function EstateDetail() {
       </AppShell>
     );
   }
-  return <EstateView estate={estate} />;
+  return <EstateView estate={estate} onReload={reload} />;
 }
 
-function EstateView({ estate }: { estate: Estate }) {
+function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void }) {
   const { t, td } = useI18n();
   useDocumentTitle(`${td(estate.name)} — MEIMAN`);
   const [selectedRoom, setSelectedRoom] = useState<(typeof estate.rooms)[number] | undefined>(
@@ -253,6 +250,7 @@ function EstateView({ estate }: { estate: Estate }) {
 
             <section className="mt-10">
               <h2 className="font-display text-2xl font-bold">{t("detail.reviewsTitle")}</h2>
+              <ReviewForm hotelId={Number(estate.id)} onSubmitted={onReload} />
               <div className="mt-4 space-y-4">
                 {estate.reviews.map((rv: (typeof estate.reviews)[number]) => (
                   <div key={rv.id} className="rounded-2xl border border-border/70 bg-card p-5">

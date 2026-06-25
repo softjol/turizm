@@ -5,7 +5,7 @@ import type { AmenityResponse, HotelTypeResponse } from "./catalog";
  * Types mirror app/schemas/hotel.py / image.py on the backend.
  */
 
-export type HotelStatus = "pending" | "approved";
+export type HotelStatus = "pending" | "approved" | "rejected" | "blocked";
 
 export interface HotelImage {
   id: number;

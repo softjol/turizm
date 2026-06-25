@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { Eye, Check, X, EyeOff, Loader2 } from "lucide-react";
+import { Eye, Check, X, EyeOff, Loader2, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { searchHotels, type Hotel } from "@/lib/api";
+import { searchHotels, moderateHotel, deleteHotel, type Hotel, type HotelStatus } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 export default function AdminHotels() {
   const { t } = useI18n();
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<number | null>(null);
 
   useEffect(() => {
     searchHotels()
@@ -16,6 +17,31 @@ export default function AdminHotels() {
       .catch((err) => console.error("[admin.hotels] load failed", err))
       .finally(() => setLoading(false));
   }, []);
+
+  async function setStatus(id: number, status: HotelStatus) {
+    setBusy(id);
+    try {
+      const updated = await moderateHotel(id, status);
+      setHotels((prev) => prev.map((h) => (h.id === id ? { ...h, status: updated.status } : h)));
+    } catch (err) {
+      console.error("[admin.hotels] moderate failed", err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(id: number, name: string) {
+    if (!window.confirm(t("ho.deleteConfirm", { name }))) return;
+    setBusy(id);
+    try {
+      await deleteHotel(id);
+      setHotels((prev) => prev.filter((h) => h.id !== id));
+    } catch (err) {
+      console.error("[admin.hotels] delete failed", err);
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div>
@@ -71,15 +97,38 @@ export default function AdminHotels() {
                   </Button>
                   <Button
                     size="sm"
+                    disabled={busy === e.id}
+                    onClick={() => setStatus(e.id, "approved")}
                     className="h-8 gap-1 bg-success text-success-foreground hover:bg-success/90"
                   >
                     <Check className="h-3.5 w-3.5" /> {t("ad.approve")}
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy === e.id}
+                    onClick={() => setStatus(e.id, "pending")}
+                    className="h-8 gap-1"
+                  >
                     <EyeOff className="h-3.5 w-3.5" /> {t("ad.hide")}
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 gap-1 text-destructive">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy === e.id}
+                    onClick={() => setStatus(e.id, "blocked")}
+                    className="h-8 gap-1 text-destructive"
+                  >
                     <X className="h-3.5 w-3.5" /> {t("ad.block")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy === e.id}
+                    onClick={() => remove(e.id, e.name)}
+                    className="h-8 w-8 p-0 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
