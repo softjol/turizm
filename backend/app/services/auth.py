@@ -1,6 +1,7 @@
 import datetime
 import random
 import hashlib
+import re
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +26,20 @@ class AuthService:
     def _hash_token(token: str) -> str:
         return hashlib.sha256(token.encode()).hexdigest()
 
+    @staticmethod
+    def normalize_phone(phone: str) -> str:
+        """Canonicalize a Kyrgyz phone number to +996XXXXXXXXX so the same
+        number in different formats (0503..., 503..., +996503..., +996 503 ...)
+        always maps to one account."""
+        digits = re.sub(r"\D", "", phone or "")
+        if digits.startswith("996"):
+            digits = digits[3:]
+        if len(digits) == 10 and digits.startswith("0"):
+            digits = digits[1:]
+        if len(digits) == 9:
+            return "+996" + digits
+        return ("+" + digits) if digits else (phone or "")
+
     @classmethod
     async def register(cls, req: RegisterRequest, db: AsyncSession) -> User:
         # Check name uniqueness
@@ -34,14 +49,15 @@ class AuthService:
         if existing_name.first() is not None:
             raise HTTPException(status_code=400, detail="Username already taken")
 
-        # Check phone uniqueness
-        existing_phone = await UserRepository.get_by_phone(req.whatsapp_phone_number, db)
+        # Check phone uniqueness (normalized so formats don't create duplicates)
+        phone = cls.normalize_phone(req.whatsapp_phone_number)
+        existing_phone = await UserRepository.get_by_phone(phone, db)
         if existing_phone is not None:
             raise HTTPException(status_code=400, detail="Phone number already registered")
 
         user = User(
             name=req.name,
-            whatsapp_phone_number=req.whatsapp_phone_number,
+            whatsapp_phone_number=phone,
             avatar_url=req.avatar_url,
             language=req.language,
             role=Role.user,
@@ -53,6 +69,7 @@ class AuthService:
 
     @classmethod
     async def request_otp(cls, phone: str, db: AsyncSession) -> str:
+        phone = cls.normalize_phone(phone)
         # Check if user exists
         user = await UserRepository.get_by_phone(phone, db)
         if user is None:
@@ -82,6 +99,7 @@ class AuthService:
 
     @classmethod
     async def verify_otp(cls, phone: str, code: str, db: AsyncSession) -> TokenResponse:
+        phone = cls.normalize_phone(phone)
         otp_record = await OtpCodeRepository.get_latest_active_otp(phone, db)
         if otp_record is None:
             raise HTTPException(status_code=400, detail="OTP code expired or not found")
