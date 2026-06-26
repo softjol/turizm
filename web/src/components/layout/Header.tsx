@@ -13,7 +13,6 @@ import {
 import { useI18n, languages } from "@/lib/i18n";
 
 function Logo() {
-  const { t } = useI18n();
   return (
     <Link to="/" className="flex items-center gap-2.5">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-pop)]">
@@ -27,10 +26,7 @@ function Logo() {
         </svg>
       </div>
       <div className="leading-tight">
-        <div className="font-display text-lg font-extrabold tracking-tight">MEIMAN</div>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          {t("header.tagline")}
-        </div>
+        <div className="font-display text-lg font-extrabold tracking-tight">StayKG</div>
       </div>
     </Link>
   );

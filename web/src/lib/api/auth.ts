@@ -107,11 +107,12 @@ export async function getMe(): Promise<User> {
 
 export interface UpdateMeRequest {
   name?: string;
+  whatsapp_phone_number?: string | null;
   email?: string | null;
   avatar_url?: string | null;
 }
 
-/** Update the current user's own profile (name / email / avatar). */
+/** Update the current user's own profile (name / phone / email / avatar). */
 export async function updateMe(body: UpdateMeRequest): Promise<User> {
   const { data } = await api.patch<User>("/auth/me", body);
   return data;

@@ -17,6 +17,7 @@ export default function ProfilePage() {
   useDocumentTitle(t("profile.docTitle"));
 
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -25,6 +26,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setName(user.name);
+      setPhone(user.whatsapp_phone_number ?? "");
       setEmail(user.email ?? "");
     }
   }, [user]);
@@ -34,7 +36,11 @@ export default function ProfilePage() {
     setError(null);
     setSaved(false);
     try {
-      await updateMe({ name: name.trim(), email: email.trim() || null });
+      await updateMe({
+        name: name.trim(),
+        whatsapp_phone_number: phone.trim() || null,
+        email: email.trim() || null,
+      });
       await refresh();
       setSaved(true);
     } catch (err) {
@@ -101,10 +107,13 @@ export default function ProfilePage() {
 
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
             <EditField label={t("profile.name")} icon={User} value={name} onChange={setName} />
-            <ReadField
+            <EditField
               label={t("profile.phone")}
               icon={Phone}
-              value={user.whatsapp_phone_number ?? "—"}
+              value={phone}
+              onChange={setPhone}
+              type="tel"
+              placeholder="+996 700 123 456"
             />
             <EditField
               label={t("profile.email")}
@@ -201,23 +210,6 @@ function EditField({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
       />
-    </div>
-  );
-}
-
-function ReadField({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon?: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div>
-      <FieldLabel label={label} icon={icon} />
-      <Input value={value} readOnly className="bg-muted/40" />
     </div>
   );
 }

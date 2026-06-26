@@ -85,7 +85,7 @@ export default function EstateDetail() {
 
 function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void }) {
   const { t, td } = useI18n();
-  useDocumentTitle(`${td(estate.name)} — MEIMAN`);
+  useDocumentTitle(`${td(estate.name)} — StayKG`);
   const [selectedRoom, setSelectedRoom] = useState<(typeof estate.rooms)[number] | undefined>(
     estate.rooms[0],
   );

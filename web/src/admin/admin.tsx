@@ -45,7 +45,7 @@ export default function AdminLayout() {
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("ad.panelLabel")}
               </div>
-              <div className="mt-0.5 font-display text-base font-bold">MEIMAN Panel</div>
+              <div className="mt-0.5 font-display text-base font-bold">StayKG Panel</div>
             </div>
             <nav className="mt-2 space-y-0.5">
               {nav.map((n) => {

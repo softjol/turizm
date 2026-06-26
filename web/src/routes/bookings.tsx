@@ -117,7 +117,7 @@ export default function BookingsPage() {
   function downloadReceipt(v: BookingView) {
     const b = v.booking;
     const lines = [
-      `MEIMAN — ${t("mb.receipt")}`,
+      `StayKG — ${t("mb.receipt")}`,
       "================================",
       `${t("hb.hotel")}: ${v.estate.name}`,
       `${t("hb.room")}: ${v.roomName}`,

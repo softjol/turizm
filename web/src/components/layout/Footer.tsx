@@ -18,7 +18,7 @@ export function Footer() {
                 />
               </svg>
             </div>
-            <span className="font-display text-lg font-extrabold">MEIMAN</span>
+            <span className="font-display text-lg font-extrabold">StayKG</span>
           </div>
           <p className="mt-4 max-w-md text-sm text-muted-foreground">{t("footer.about")}</p>
         </div>
@@ -46,7 +46,7 @@ export function Footer() {
           <div className="text-sm font-semibold">{t("footer.contacts")}</div>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
             <li>+996 (312) 00 00 00</li>
-            <li>support@meiman.kg</li>
+            <li>support@staykg.kg</li>
             <li>{t("footer.location")}</li>
           </ul>
         </div>

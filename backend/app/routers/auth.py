@@ -49,13 +49,20 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Редактирование собственного профиля (имя, email, аватар)."""
+    """Редактирование собственного профиля (имя, телефон, email, аватар)."""
     if req.email and req.email != current_user.email:
         existing = (
             await db.execute(select(User).where(User.email == req.email))
         ).scalars().first()
         if existing is not None:
             raise HTTPException(status_code=400, detail="Email already in use")
+    if req.whatsapp_phone_number is not None:
+        phone = AuthService.normalize_phone(req.whatsapp_phone_number)
+        req.whatsapp_phone_number = phone or None
+        if phone and phone != current_user.whatsapp_phone_number:
+            existing_phone = await UserRepository.get_by_phone(phone, db)
+            if existing_phone is not None:
+                raise HTTPException(status_code=400, detail="Phone number already in use")
     await UserRepository.update(current_user, req, db)
     await db.commit()
     await db.refresh(current_user)

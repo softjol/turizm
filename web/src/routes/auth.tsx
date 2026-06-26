@@ -3,6 +3,7 @@ import { useState } from "react";
 import { isAxiosError } from "axios";
 import { Phone, ArrowRight, MessageCircle, ShieldCheck, Loader2, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -213,6 +214,17 @@ export default function AuthPage() {
                   {t("auth.changeNumber")}
                 </button>
               </form>
+            )}
+
+            {step === "form" && (
+              <>
+                <div className="my-6 flex items-center gap-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  {t("auth.orDivider")}
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <GoogleSignInButton onError={setError} />
+              </>
             )}
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
