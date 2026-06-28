@@ -87,11 +87,7 @@ export default function HomePage() {
         </div>
         <div className="container-app pb-10 pt-16 md:pb-14 md:pt-20">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              {t("home.badge")}
-            </div>
-            <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">
+            <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">
               {t("home.title")} <span className="text-primary">{t("home.titleAccent")}</span>
             </h1>
             <p className="mt-5 max-w-xl text-base text-muted-foreground md:text-lg">
