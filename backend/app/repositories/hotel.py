@@ -103,7 +103,7 @@ class HotelRepository(BaseRepository):
             ).exists()
             room_conditions.append(~overlap_booking_exists)
 
-        stmt = select(cls.model).distinct()
+        stmt = select(cls.model).distinct().where(and_(*conditions))
 
         # Join rooms if room filters are present
         if min_price is not None or max_price is not None or (check_in_date and check_out_date):
