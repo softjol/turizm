@@ -22,10 +22,23 @@ app = FastAPI(
     description="Платформа бронирования гостиниц «Туризм Сары-Челек»"
 )
 
-# CORS configuration
+# CORS configuration.
+# NB: a wildcard "*" origin is invalid together with allow_credentials=True —
+# browsers reject "Access-Control-Allow-Origin: *" alongside credentials, which
+# surfaces as "No 'Access-Control-Allow-Origin' header is present". So we echo an
+# explicit allow-list (overridable via the ALLOWED_ORIGINS env var, comma-separated).
+_default_origins = ",".join([
+    "https://staykg.softjol.site",
+    "http://localhost:5173",
+    "http://localhost:8091",
+    "http://localhost",
+])
+allowed_origins = [
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For MVP
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
