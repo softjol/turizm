@@ -18,9 +18,11 @@ from app.repositories.user import UserRepository
 from app.repositories.hotel_type import HotelTypeRepository
 from app.repositories.amenity import AmenityRepository
 from app.repositories.complaint import ComplaintRepository
+from app.repositories.hotel import HotelRepository
 
 from app.dependencies.dependencies import get_current_user, require_role
 from app.models.user import User
+from app.models.hotel import HotelStatus
 
 router = APIRouter(tags=["Admin"])
 
@@ -174,6 +176,17 @@ async def delete_amenity(id: int, db: AsyncSession = Depends(get_db), current_us
     await db.commit()
 
 # === Hotels Moderation ===
+@router.get("/admin/hotels", response_model=list[HotelResponse])
+async def list_all_hotels(
+    status: HotelStatus | None = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(100, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin"))
+):
+    """Все объекты для модерации (любой статус), новые сверху."""
+    return await HotelRepository.list_all(db, status=status, page=page, limit=limit)
+
 @router.patch("/hotels/{hotel_id}/status", response_model=HotelResponse)
 async def moderate_hotel(hotel_id: int, req: HotelStatusUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_role("admin"))):
     """Модерация: approve / reject / block"""

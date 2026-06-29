@@ -3,7 +3,7 @@ import { Eye, Check, X, EyeOff, Loader2, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  searchHotels,
+  getAdminHotels,
   moderateHotel,
   deleteHotel,
   mediaUrl,
@@ -19,7 +19,7 @@ export default function AdminHotels() {
   const [busy, setBusy] = useState<number | null>(null);
 
   useEffect(() => {
-    searchHotels()
+    getAdminHotels()
       .then(setHotels)
       .catch((err) => console.error("[admin.hotels] load failed", err))
       .finally(() => setLoading(false));

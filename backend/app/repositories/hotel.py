@@ -30,6 +30,51 @@ class HotelRepository(BaseRepository):
         return result.scalar_one_or_none()
 
     @classmethod
+    async def list_all(
+        cls,
+        db: AsyncSession,
+        status: HotelStatus | None = None,
+        page: int = 1,
+        limit: int = 100,
+    ) -> list[Hotel]:
+        """Admin moderation list: every hotel regardless of status (newest first).
+
+        Unlike search_hotels (public, approved-only), this returns pending/blocked
+        objects too so the admin can moderate them."""
+        page = max(page, 1)
+        limit = min(max(limit, 1), 200)
+        offset = (page - 1) * limit
+
+        stmt = select(cls.model)
+        if status is not None:
+            stmt = stmt.where(cls.model.status == status)
+        stmt = (
+            stmt.order_by(desc(cls.model.created_at))
+            .offset(offset)
+            .limit(limit)
+            .options(
+                selectinload(cls.model.images),
+                selectinload(cls.model.amenities),
+                selectinload(cls.model.hotel_type),
+                selectinload(cls.model.rooms),
+                selectinload(cls.model.reviews),
+            )
+        )
+        result = await db.execute(stmt)
+        hotels = list(result.scalars().all())
+
+        for hotel in hotels:
+            available_prices = [
+                float(r.price_per_night)
+                for r in hotel.rooms
+                if r.status == RoomStatus.available
+            ]
+            hotel.price_from = min(available_prices) if available_prices else None
+            hotel.reviews_count = len(hotel.reviews)
+
+        return hotels
+
+    @classmethod
     async def get_by_owner_id(cls, owner_id: int, db: AsyncSession) -> list[Hotel]:
         query = (
             select(cls.model)

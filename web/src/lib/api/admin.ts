@@ -30,6 +30,12 @@ export async function deleteUser(userId: number): Promise<void> {
 
 // --- Hotel moderation ------------------------------------------------------
 
+/** GET /api/v1/admin/hotels — every hotel regardless of status (admin moderation). */
+export async function getAdminHotels(): Promise<Hotel[]> {
+  const { data } = await api.get<Hotel[]>("/admin/hotels");
+  return data;
+}
+
 export async function moderateHotel(hotelId: number, status: HotelStatus): Promise<Hotel> {
   const { data } = await api.patch<Hotel>(`/hotels/${hotelId}/status`, { status });
   return data;
