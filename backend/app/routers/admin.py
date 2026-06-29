@@ -86,6 +86,7 @@ async def assign_role(
         raise HTTPException(status_code=404, detail="User not found")
     user.role = req.role
     await db.commit()
+    await db.refresh(user)
     return user
 
 @router.patch("/users/{user_id}/block", response_model=UserResponse)
