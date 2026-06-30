@@ -11,6 +11,7 @@ import {
   type Role,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { toast } from "sonner";
 
 const ROLES: Role[] = ["user", "reception", "admin"];
 
@@ -33,8 +34,10 @@ export default function AdminUsers() {
     try {
       const u = await updateUserRole(id, role);
       setUsers((prev) => prev.map((x) => (x.id === id ? { ...x, role: u.role } : x)));
+      toast.success(t("ad.roleUpdated"));
     } catch (err) {
       console.error("[admin.users] role failed", err);
+      toast.error(t("ad.roleUpdateFailed"));
     } finally {
       setBusy(null);
     }
@@ -47,8 +50,10 @@ export default function AdminUsers() {
       setUsers((prev) =>
         prev.map((x) => (x.id === u.id ? { ...x, is_active: updated.is_active } : x)),
       );
+      toast.success(updated.is_active ? t("ad.userUnblocked") : t("ad.userBlocked"));
     } catch (err) {
       console.error("[admin.users] block failed", err);
+      toast.error(t("ad.actionFailed"));
     } finally {
       setBusy(null);
     }
@@ -60,8 +65,10 @@ export default function AdminUsers() {
     try {
       await deleteUser(u.id);
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      toast.success(t("ad.userDeleted"));
     } catch (err) {
       console.error("[admin.users] delete failed", err);
+      toast.error(t("ad.actionFailed"));
     } finally {
       setBusy(null);
     }

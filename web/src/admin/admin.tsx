@@ -17,6 +17,7 @@ import {
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { Toaster } from "@/components/ui/sonner";
 
 const nav = [
   { to: "/admin", labelKey: "ad.navDashboard", icon: LayoutDashboard, exact: true },
@@ -94,6 +95,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
