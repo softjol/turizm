@@ -60,7 +60,7 @@ class AuthService:
             whatsapp_phone_number=phone,
             avatar_url=req.avatar_url,
             language=req.language,
-            role=Role.user,
+            role=Role[req.role],
             is_active=False
         )
         await UserRepository.create(user, db)
@@ -203,7 +203,7 @@ class AuthService:
             await db.commit()
 
     @classmethod
-    async def google_auth(cls, token: str, db: AsyncSession) -> TokenResponse:
+    async def google_auth(cls, token: str, db: AsyncSession, role: str = "user") -> TokenResponse:
         # Verify with Google (mock logic for testing, try actual call and fallback)
         import httpx
         
@@ -272,7 +272,7 @@ class AuthService:
                     email=email,
                     google_id=google_id,
                     avatar_url=avatar_url,
-                    role=Role.user,
+                    role=Role[role],
                     is_active=True # Google users are pre-verified
                 )
                 await UserRepository.create(user, db)

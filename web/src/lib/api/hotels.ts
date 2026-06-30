@@ -1,4 +1,4 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 import type { AmenityResponse, HotelTypeResponse } from "./catalog";
 
 /**
@@ -72,7 +72,7 @@ export interface HotelSearchParams {
   limit?: number;
 }
 
-/** GET /api/v1/hotels — public, approved-only catalog with optional filters. */
+/** GET /api/v1/hotels - public, approved-only catalog with optional filters. */
 export async function searchHotels(params: HotelSearchParams = {}): Promise<Hotel[]> {
   const { data } = await api.get<Hotel[]>("/hotels", { params });
   return Array.isArray(data) ? data : [];
@@ -94,7 +94,7 @@ export async function setHotelAmenities(hotelId: number, amenityIds: number[]): 
 
 /**
  * Fetch a single hotel by id. Public endpoint, but unlike the catalog list it
- * returns the hotel in ANY status — so a freshly created `pending` hotel is
+ * returns the hotel in ANY status - so a freshly created `pending` hotel is
  * visible here immediately.
  */
 export async function getHotel(hotelId: number): Promise<Hotel> {
@@ -111,7 +111,7 @@ export async function updateHotel(
   return data;
 }
 
-/** Delete a hotel (DELETE /hotels/{id} — admin only on the backend). */
+/** Delete a hotel (DELETE /hotels/{id} - admin only on the backend). */
 export async function deleteHotel(hotelId: number): Promise<void> {
   await api.delete(`/hotels/${hotelId}`);
 }

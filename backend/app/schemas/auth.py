@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, Field
 
 class RegisterRequest(BaseModel):
@@ -5,6 +6,7 @@ class RegisterRequest(BaseModel):
     whatsapp_phone_number: str = Field(..., description="WhatsApp number in international format, e.g. +996555123456")
     avatar_url: str | None = None
     language: str | None = "ru"
+    role: Literal["user", "reception"] = "user"
 
 class RequestOtpRequest(BaseModel):
     whatsapp_phone_number: str = Field(..., description="WhatsApp number in international format, e.g. +996555123456")
@@ -18,6 +20,7 @@ class RefreshTokenRequest(BaseModel):
 
 class GoogleAuthRequest(BaseModel):
     token: str = Field(..., description="Google ID Token or Access Token")
+    role: Literal["user", "reception"] = "user"
 
 class TokenResponse(BaseModel):
     access_token: str

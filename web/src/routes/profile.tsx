@@ -5,6 +5,7 @@ import { User, Phone, Mail, Languages, Loader2, Check } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { updateMe } from "@/lib/api";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n, languages } from "@/lib/i18n";
@@ -107,14 +108,10 @@ export default function ProfilePage() {
 
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
             <EditField label={t("profile.name")} icon={User} value={name} onChange={setName} />
-            <EditField
-              label={t("profile.phone")}
-              icon={Phone}
-              value={phone}
-              onChange={setPhone}
-              type="tel"
-              placeholder="+996 700 123 456"
-            />
+            <div>
+              <FieldLabel label={t("profile.phone")} icon={Phone} />
+              <PhoneInput value={phone} onChange={setPhone} />
+            </div>
             <EditField
               label={t("profile.email")}
               icon={Mail}

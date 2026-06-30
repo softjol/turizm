@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, MapPin, X, MessageCircle, Loader2, Download } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
@@ -119,7 +119,7 @@ export default function BookingsPage() {
   function downloadReceipt(v: BookingView) {
     const b = v.booking;
     const lines = [
-      `StayKG — ${t("mb.receipt")}`,
+      `StayKG - ${t("mb.receipt")}`,
       "================================",
       `${t("hb.hotel")}: ${v.estate.name}`,
       `${t("hb.room")}: ${v.roomName}`,
@@ -186,7 +186,7 @@ export default function BookingsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
-            {t("mb.title")} — 0
+            {t("mb.title")} - 0
           </div>
         ) : (
           <div className="mt-6 space-y-4">

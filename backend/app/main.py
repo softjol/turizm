@@ -1,4 +1,4 @@
-import os
+﻿import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -23,7 +23,7 @@ app = FastAPI(
 )
 
 # CORS configuration.
-# NB: a wildcard "*" origin is invalid together with allow_credentials=True —
+# NB: a wildcard "*" origin is invalid together with allow_credentials=True -
 # browsers reject "Access-Control-Allow-Origin: *" alongside credentials, which
 # surfaces as "No 'Access-Control-Allow-Origin' header is present". So we echo an
 # explicit allow-list (overridable via the ALLOWED_ORIGINS env var, comma-separated).
@@ -38,7 +38,7 @@ allowed_origins = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://staykg.softjol.site"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

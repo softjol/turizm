@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Star, MessageCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,7 +50,7 @@ export default function HostReviews() {
   const hotel = hotels.find((h) => h.id === hotelId) ?? null;
   const avg = reviews.length
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-    : "—";
+    : "-";
 
   async function submitReply(id: number) {
     if (!replyText.trim()) return;

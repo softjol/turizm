@@ -1,4 +1,4 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 import { setTokens, clearTokens, getRefreshToken, type AuthTokens } from "./tokens";
 
 /**
@@ -15,6 +15,7 @@ export interface RegisterRequest {
   whatsapp_phone_number: string;
   avatar_url?: string | null;
   language?: string | null;
+  role?: "user" | "reception";
 }
 
 export interface RequestOtpRequest {
@@ -34,7 +35,7 @@ export interface GoogleAuthRequest {
 
 // --- Response bodies -------------------------------------------------------
 
-/** TokenResponse — also the shape verify-otp / refresh / google return. */
+/** TokenResponse - also the shape verify-otp / refresh / google return. */
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -91,9 +92,10 @@ export async function verifyOtp(
   return data;
 }
 
-export async function googleAuth(token: string): Promise<TokenResponse> {
+export async function googleAuth(token: string, role: "user" | "reception" = "user"): Promise<TokenResponse> {
   const { data } = await api.post<TokenResponse>("/auth/google", {
     token,
+    role,
   } satisfies GoogleAuthRequest);
   setTokens(data as AuthTokens);
   return data;

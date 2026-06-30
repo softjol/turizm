@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Search, Ban, Trash2, Loader2, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -113,7 +113,7 @@ export default function AdminUsers() {
               {filtered.map((u) => (
                 <tr key={u.id} className="hover:bg-muted/40">
                   <td className="px-5 py-4 font-semibold">{u.name}</td>
-                  <td className="px-5 py-4">{u.whatsapp_phone_number ?? "—"}</td>
+                  <td className="px-5 py-4">{u.whatsapp_phone_number ?? "-"}</td>
                   <td className="px-5 py-4">
                     <select
                       value={u.role}

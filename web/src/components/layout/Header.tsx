@@ -68,11 +68,18 @@ export function Header() {
     await signOut();
     navigate("/");
   }
+  const { user } = useAuth();
+  const role = user?.role;
+
   const nav = [
-    { to: "/estates", label: t("nav.estates") },
-    { to: "/bookings", label: t("nav.bookings") },
-    { to: "/favorites", label: t("nav.favorites") },
-    { to: "/host", label: t("nav.host") },
+    ...(role !== "reception" ? [
+      { to: "/estates", label: t("nav.estates") },
+      { to: "/bookings", label: t("nav.bookings") },
+      { to: "/favorites", label: t("nav.favorites") },
+    ] : []),
+    ...(role === "reception" ? [
+      { to: "/host", label: t("nav.host") },
+    ] : []),
   ];
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -128,13 +135,17 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link to="/profile">{t("menu.profile")}</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/bookings">{t("menu.myBookings")}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/favorites">{t("menu.favorites")}</Link>
-                  </DropdownMenuItem>
-                  {hasRole("reception", "admin") && (
+                  {role !== "reception" && (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to="/bookings">{t("menu.myBookings")}</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/favorites">{t("menu.favorites")}</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {hasRole("reception") && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
@@ -143,9 +154,12 @@ export function Header() {
                     </>
                   )}
                   {hasRole("admin") && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin">{t("menu.adminPanel")}</Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin">{t("menu.adminPanel")}</Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">

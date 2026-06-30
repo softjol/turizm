@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.dependencies import get_db
@@ -34,7 +34,7 @@ async def refresh_token(req: RefreshTokenRequest, db: AsyncSession = Depends(get
 
 @router.post("/logout")
 async def logout(req: RefreshTokenRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Выход — отзыв refresh-токена."""
+    """Выход - отзыв refresh-токена."""
     await AuthService.logout(req.refresh_token, db)
     return {"message": "Successfully logged out"}
 
@@ -71,4 +71,4 @@ async def update_me(
 @router.post("/google", response_model=TokenResponse)
 async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
     """Вход через Google OAuth."""
-    return await AuthService.google_auth(req.token, db)
+    return await AuthService.google_auth(req.token, db, req.role)

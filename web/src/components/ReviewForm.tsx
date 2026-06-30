@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { isAxiosError } from "axios";
 import { Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { getMyBookings, getRoom, createReview } from "@/lib/api";
 
 /**
  * "Leave a review" form on the estate detail page. Per the spec, only users who
- * actually stayed can review — so we look for one of the user's completed
+ * actually stayed can review - so we look for one of the user's completed
  * bookings for this hotel and use its booking_id. If none exists, render nothing.
  */
 export function ReviewForm({ hotelId, onSubmitted }: { hotelId: number; onSubmitted: () => void }) {

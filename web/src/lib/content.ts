@@ -1,4 +1,4 @@
-// Словарь перевода контента данных (ключ — русский оригинал из mock-data).
+﻿// Словарь перевода контента данных (ключ - русский оригинал из mock-data).
 // Используется хелпером td() из i18n. Отсутствующий ключ/язык -> русский оригинал.
 
 export const content: Record<string, { en: string; ky: string }> = {
@@ -140,7 +140,7 @@ export const content: Record<string, { en: string; ky: string }> = {
   },
 
   // Отзывы
-  "Невероятное место. Утром туман над озером — словно картина. Хозяева очень внимательные.": {
+  "Невероятное место. Утром туман над озером - словно картина. Хозяева очень внимательные.": {
     en: "An incredible place. Morning mist over the lake looks like a painting. The hosts are very attentive.",
     ky: "Кереметтүү жер. Эртең менен көлдүн үстүндөгү туман сүрөттөй. Ээлери абдан кунт коюшат.",
   },
@@ -148,9 +148,9 @@ export const content: Record<string, { en: string; ky: string }> = {
     en: "Thank you, we look forward to seeing you again!",
     ky: "Рахмат, кайра келишиңизди күтөбүз!",
   },
-  "Чисто, уютно, тепло даже ночью. Завтрак включён — каша, лепёшки, варенье.": {
-    en: "Clean, cosy and warm even at night. Breakfast included — porridge, flatbread and jam.",
-    ky: "Таза, жайлуу, түнкүсүн да жылуу. Эртең мененки тамак кошо — ботко, нан, кайнатма.",
+  "Чисто, уютно, тепло даже ночью. Завтрак включён - каша, лепёшки, варенье.": {
+    en: "Clean, cosy and warm even at night. Breakfast included - porridge, flatbread and jam.",
+    ky: "Таза, жайлуу, түнкүсүн да жылуу. Эртең мененки тамак кошо - ботко, нан, кайнатма.",
   },
   "Очень душевно. Спасибо!": { en: "So heartfelt. Thank you!", ky: "Абдан жылуу. Рахмат!" },
   "Хорошее соотношение цены и качества.": {

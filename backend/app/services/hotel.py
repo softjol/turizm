@@ -35,7 +35,7 @@ class HotelService:
             email=req.email,
             check_in_time=req.check_in_time,
             check_out_time=req.check_out_time,
-            status=HotelStatus.pending,
+            status=HotelStatus.approved,
             rating=0.0
         )
         await HotelRepository.create(hotel, db)

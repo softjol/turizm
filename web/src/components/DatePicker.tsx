@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useI18n } from "@/lib/i18n";
@@ -41,7 +41,7 @@ export function DatePicker({ value, onChange, min, placeholder, className }: Dat
         day: "numeric",
         month: "long",
       })
-    : (placeholder ?? "—");
+    : (placeholder ?? "-");
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

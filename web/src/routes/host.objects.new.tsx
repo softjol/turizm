@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/lib/i18n";
@@ -87,23 +88,29 @@ export default function NewObjectWizard() {
     return err instanceof Error ? err.message : t("no.createError");
   }
 
+  function handleNext() {
+    setError(null);
+    if (step === 1) {
+      if (hotelTypeId === null) {
+        setError(t("no.errType"));
+        return;
+      }
+    }
+    if (step === 2) {
+      if (name.trim().length < 2 || description.trim().length < 10 || address.trim().length < 5) {
+        setError(t("no.errFields"));
+        return;
+      }
+      if (phone.trim().length < 5 || whatsapp.trim().length < 5) {
+        setError(t("no.errContacts"));
+        return;
+      }
+    }
+    setStep((s) => s + 1);
+  }
+
   async function handlePublish() {
     setError(null);
-    if (hotelTypeId === null) {
-      setError(t("no.errType"));
-      setStep(1);
-      return;
-    }
-    if (name.trim().length < 2 || description.trim().length < 10 || address.trim().length < 5) {
-      setError(t("no.errFields"));
-      setStep(2);
-      return;
-    }
-    if (phone.trim().length < 5 || whatsapp.trim().length < 5) {
-      setError(t("no.errContacts"));
-      setStep(2);
-      return;
-    }
 
     const { latitude, longitude } = parseCoords(coords);
     setSubmitting(true);
@@ -120,6 +127,8 @@ export default function NewObjectWizard() {
         email: email.trim() || null,
         check_in_time: checkIn,
         check_out_time: checkOut,
+        latitude: null,
+        longitude: null,
       });
       if (amenities.length > 0) {
         await setHotelAmenities(hotel.id, amenities);
@@ -210,13 +219,6 @@ export default function NewObjectWizard() {
                     placeholder={t("no.fAddressPh")}
                   />
                 </Field>
-                <Field label={t("no.fCoords")}>
-                  <Input
-                    value={coords}
-                    onChange={(e) => setCoords(e.target.value)}
-                    placeholder="41.8500, 71.9500"
-                  />
-                </Field>
                 <Field label={t("no.fEmail")}>
                   <Input
                     type="email"
@@ -226,18 +228,10 @@ export default function NewObjectWizard() {
                   />
                 </Field>
                 <Field label={t("no.fPhone")}>
-                  <Input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+996 700 00 00 00"
-                  />
+                  <PhoneInput value={phone} onChange={setPhone} />
                 </Field>
                 <Field label="WhatsApp">
-                  <Input
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    placeholder="+996 700 00 00 00"
-                  />
+                  <PhoneInput value={whatsapp} onChange={setWhatsapp} />
                 </Field>
                 <Field label={t("no.fCheckIn")}>
                   <Input type="time" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
@@ -335,7 +329,7 @@ export default function NewObjectWizard() {
             </Button>
             <div className="flex gap-2">
               {step < 4 ? (
-                <Button onClick={() => setStep((s) => s + 1)} className="gap-2 rounded-xl">
+                <Button onClick={handleNext} className="gap-2 rounded-xl">
                   {t("no.continue")} <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (

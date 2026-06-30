@@ -1,4 +1,4 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 
 export interface NotificationResponse {
   id: number;
@@ -10,7 +10,7 @@ export interface NotificationResponse {
   created_at: string;
 }
 
-/** GET /api/v1/notifications — current user's notifications. */
+/** GET /api/v1/notifications - current user's notifications. */
 export async function getNotifications(): Promise<NotificationResponse[]> {
   const { data } = await api.get<NotificationResponse[]>("/notifications");
   return data;

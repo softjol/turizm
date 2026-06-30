@@ -20,6 +20,7 @@ from app.services.booking import BookingService
 from app.services.review import ReviewService
 
 from app.repositories.booking import BookingRepository
+from app.repositories.hotel import HotelRepository
 
 from app.dependencies.dependencies import get_current_user, require_role
 from app.models.user import User
@@ -70,6 +71,7 @@ async def update_hotel(
     current_user: User = Depends(require_role("user", "reception", "admin"))
 ):
     return await HotelService.update_hotel(hotel_id, current_user.id, get_is_admin(current_user), req, db)
+
 
 @router.post("/hotels/{hotel_id}/images", response_model=ImageResponse, status_code=201)
 async def upload_hotel_image(

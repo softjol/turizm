@@ -1,4 +1,4 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 import type { HotelImage } from "./hotels";
 import type { AmenityResponse } from "./catalog";
 
@@ -24,13 +24,13 @@ export interface RoomResponse {
   amenities: AmenityResponse[];
 }
 
-/** GET /api/v1/hotels/{id}/rooms — public list of a hotel's rooms. */
+/** GET /api/v1/hotels/{id}/rooms - public list of a hotel's rooms. */
 export async function getHotelRooms(hotelId: number): Promise<RoomResponse[]> {
   const { data } = await api.get<RoomResponse[]>(`/hotels/${hotelId}/rooms`);
   return Array.isArray(data) ? data : [];
 }
 
-/** GET /api/v1/rooms/{id} — single room with images + amenities. */
+/** GET /api/v1/rooms/{id} - single room with images + amenities. */
 export async function getRoom(roomId: number): Promise<RoomResponse> {
   const { data } = await api.get<RoomResponse>(`/rooms/${roomId}`);
   return data;
@@ -56,7 +56,7 @@ export async function createRoom(
   return data;
 }
 
-/** Update a room (reception) — PATCH /reception/rooms/{id}. */
+/** Update a room (reception) - PATCH /reception/rooms/{id}. */
 export async function updateRoom(
   roomId: number,
   patch: Partial<RoomCreatePayload> & { status?: RoomStatus },
@@ -65,7 +65,7 @@ export async function updateRoom(
   return data;
 }
 
-/** Delete a room (reception) — DELETE /reception/rooms/{id}. */
+/** Delete a room (reception) - DELETE /reception/rooms/{id}. */
 export async function deleteRoom(roomId: number): Promise<void> {
   await api.delete(`/reception/rooms/${roomId}`);
 }
@@ -85,7 +85,7 @@ export async function uploadRoomImage(
   return data;
 }
 
-/** Delete a room photo — DELETE /reception/rooms/{id}/images/{imageId}. */
+/** Delete a room photo - DELETE /reception/rooms/{id}/images/{imageId}. */
 export async function deleteRoomImage(roomId: number, imageId: number): Promise<void> {
   await api.delete(`/reception/rooms/${roomId}/images/${imageId}`);
 }
@@ -95,7 +95,7 @@ export interface RoomCalendar {
   occupied_periods: { date_from: string; date_to: string }[];
 }
 
-/** GET /api/v1/rooms/{id}/calendar?start_date&end_date — occupancy periods. */
+/** GET /api/v1/rooms/{id}/calendar?start_date&end_date - occupancy periods. */
 export async function getRoomCalendar(
   roomId: number,
   startDate: string,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Check, X, LogIn, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,7 +143,7 @@ export default function HostBookings() {
           <LogOut className="h-3.5 w-3.5" /> {t("hb.checkOut")}
         </Button>
       );
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return <span className="text-xs text-muted-foreground">-</span>;
   }
 
   return (

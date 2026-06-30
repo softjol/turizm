@@ -1,4 +1,4 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 
 export interface HealthResponse {
   status: string;
@@ -27,10 +27,10 @@ export async function pingBackend(): Promise<HealthResponse | null> {
   try {
     // Absolute URL → axios ignores baseURL and hits the server root.
     const { data } = await api.get<HealthResponse>(healthUrl());
-    console.info("[api] ✅ backend reachable — GET /health:", data);
+    console.info("[api] ✅ backend reachable - GET /health:", data);
     return data;
   } catch (error) {
-    console.error("[api] ❌ backend unreachable — GET /health failed:", error);
+    console.error("[api] ❌ backend unreachable - GET /health failed:", error);
     return null;
   }
 }

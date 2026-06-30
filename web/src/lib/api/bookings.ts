@@ -1,4 +1,4 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 
 /** Mirrors app/schemas/booking.py. */
 export type BookingStatus =
@@ -33,25 +33,25 @@ export interface BookingCreatePayload {
   guests: number;
 }
 
-/** POST /api/v1/bookings — create a booking (auth required). */
+/** POST /api/v1/bookings - create a booking (auth required). */
 export async function createBooking(payload: BookingCreatePayload): Promise<BookingResponse> {
   const { data } = await api.post<BookingResponse>("/bookings", payload);
   return data;
 }
 
-/** GET /api/v1/bookings — bookings of the current user. */
+/** GET /api/v1/bookings - bookings of the current user. */
 export async function getMyBookings(): Promise<BookingResponse[]> {
   const { data } = await api.get<BookingResponse[]>("/bookings");
   return Array.isArray(data) ? data : [];
 }
 
-/** GET /api/v1/bookings/{id} — single booking. */
+/** GET /api/v1/bookings/{id} - single booking. */
 export async function getBooking(bookingId: number): Promise<BookingResponse> {
   const { data } = await api.get<BookingResponse>(`/bookings/${bookingId}`);
   return data;
 }
 
-/** PATCH /api/v1/bookings/{id}/cancel — cancel a booking. */
+/** PATCH /api/v1/bookings/{id}/cancel - cancel a booking. */
 export async function cancelBooking(bookingId: number): Promise<BookingResponse> {
   const { data } = await api.patch<BookingResponse>(`/bookings/${bookingId}/cancel`);
   return data;
@@ -59,7 +59,7 @@ export async function cancelBooking(bookingId: number): Promise<BookingResponse>
 
 // --- Reception side (host manages bookings for their hotels) ----------------
 
-/** GET /api/v1/reception/hotels/{id}/bookings — bookings for one of my hotels. */
+/** GET /api/v1/reception/hotels/{id}/bookings - bookings for one of my hotels. */
 export async function listHotelBookings(hotelId: number): Promise<BookingResponse[]> {
   const { data } = await api.get<BookingResponse[]>(`/reception/hotels/${hotelId}/bookings`);
   return Array.isArray(data) ? data : [];

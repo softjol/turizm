@@ -1,4 +1,4 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 
 /** Mirrors app/schemas/review.py. */
 export interface ReviewResponse {
@@ -20,13 +20,13 @@ export interface ReviewCreatePayload {
   comment: string;
 }
 
-/** GET /api/v1/hotels/{id}/reviews — public list of a hotel's reviews. */
+/** GET /api/v1/hotels/{id}/reviews - public list of a hotel's reviews. */
 export async function getHotelReviews(hotelId: number): Promise<ReviewResponse[]> {
   const { data } = await api.get<ReviewResponse[]>(`/hotels/${hotelId}/reviews`);
   return Array.isArray(data) ? data : [];
 }
 
-/** POST /api/v1/hotels/{id}/reviews — leave a review (auth required). */
+/** POST /api/v1/hotels/{id}/reviews - leave a review (auth required). */
 export async function createReview(
   hotelId: number,
   payload: ReviewCreatePayload,
@@ -35,7 +35,7 @@ export async function createReview(
   return data;
 }
 
-/** PATCH /api/v1/reception/reviews/{id}/reply — host replies to a review. */
+/** PATCH /api/v1/reception/reviews/{id}/reply - host replies to a review. */
 export async function replyToReview(reviewId: number, reply: string): Promise<ReviewResponse> {
   const { data } = await api.patch<ReviewResponse>(`/reception/reviews/${reviewId}/reply`, {
     reply,

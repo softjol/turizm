@@ -1,5 +1,5 @@
 import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from app.models.hotel import HotelStatus
 from app.schemas.hotel_type import HotelTypeResponse
 from app.schemas.image import ImageResponse
@@ -48,6 +48,20 @@ class HotelCreate(BaseModel):
     email: str | None = None
     check_in_time: str = "14:00"
     check_out_time: str = "12:00"
+
+    @field_validator("latitude")
+    @classmethod
+    def validate_latitude(cls, v: float | None) -> float | None:
+        if v is not None and not (-90 <= v <= 90):
+            raise ValueError("Широта должна быть от -90 до 90")
+        return v
+
+    @field_validator("longitude")
+    @classmethod
+    def validate_longitude(cls, v: float | None) -> float | None:
+        if v is not None and not (-180 <= v <= 180):
+            raise ValueError("Долгота должна быть от -180 до 180")
+        return v
 
 class HotelUpdate(BaseModel):
     hotel_type_id: int | None = None

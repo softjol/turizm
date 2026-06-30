@@ -1,4 +1,4 @@
-import type { Estate, Room as UIRoom, Review as UIReview, EstateType } from "@/lib/types";
+﻿import type { Estate, Room as UIRoom, Review as UIReview, EstateType } from "@/lib/types";
 import type { Hotel } from "./hotels";
 import { searchHotels, getHotel, mediaUrl, type HotelSearchParams } from "./hotels";
 import { getHotelRooms, type RoomResponse, type RoomType } from "./rooms";
@@ -100,7 +100,7 @@ export function toEstate(hotel: Hotel, rooms: RoomResponse[], reviews: ReviewRes
 /**
  * Lightweight Estate for catalog cards. Built purely from the hotel list
  * response (which now carries price_from + reviews_count), so the whole
- * catalog is a single request — no per-hotel rooms/reviews fetches.
+ * catalog is a single request - no per-hotel rooms/reviews fetches.
  * `rooms`/`reviews` are left empty; the detail page loads those.
  */
 export function hotelToEstateSummary(hotel: Hotel): Estate {
@@ -125,7 +125,7 @@ export function hotelToEstateSummary(hotel: Hotel): Estate {
   };
 }
 
-/** Catalog list as Estates — one request, card-ready. */
+/** Catalog list as Estates - one request, card-ready. */
 export async function getEstates(params: HotelSearchParams = {}): Promise<Estate[]> {
   const hotels = await searchHotels(params);
   return hotels.map(hotelToEstateSummary);

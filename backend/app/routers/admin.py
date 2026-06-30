@@ -193,7 +193,12 @@ async def moderate_hotel(hotel_id: int, req: HotelStatusUpdate, db: AsyncSession
     return await HotelService.update_status(hotel_id, req.status, db)
 
 @router.delete("/hotels/{hotel_id}", status_code=204)
-async def delete_hotel(hotel_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_role("admin"))):
+async def delete_hotel(hotel_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_role("admin", "reception"))):
+    hotel = await HotelRepository.get_by_id(hotel_id, db)
+    if not hotel:
+        raise HTTPException(status_code=404, detail="Hotel not found")
+    if current_user.role.value == "reception" and hotel.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Permission denied")
     await HotelService.delete_hotel(hotel_id, db)
 
 # === Complaints ===

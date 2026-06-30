@@ -58,9 +58,10 @@ function loadGsiScript(): Promise<void> {
 
 export function GoogleSignInButton({
   onError,
+  role = "user",
 }: {
-  /** Called with a human-readable message when sign-in fails. */
   onError?: (message: string) => void;
+  role?: "user" | "reception";
 }) {
   const navigate = useNavigate();
   const { refresh } = useAuth();
@@ -74,14 +75,14 @@ export function GoogleSignInButton({
         return;
       }
       try {
-        await googleAuth(resp.credential);
-        await refresh(); // hydrate auth context so header/menu update
-        navigate("/profile");
+        await googleAuth(resp.credential, role);
+        await refresh();
+        navigate(role === "reception" ? "/host" : "/");
       } catch (err) {
         onError?.(err instanceof Error ? err.message : "Google sign-in failed");
       }
     },
-    [navigate, refresh, onError],
+    [navigate, refresh, onError, role],
   );
 
   useEffect(() => {

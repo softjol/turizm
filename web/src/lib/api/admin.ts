@@ -1,11 +1,11 @@
-import { api } from "./client";
+﻿import { api } from "./client";
 import type { User, Role } from "./auth";
 import type { Hotel, HotelStatus } from "./hotels";
 import type { HotelTypeResponse, AmenityResponse } from "./catalog";
 
 // --- Users -----------------------------------------------------------------
 
-/** GET /api/v1/users — all users (admin only). */
+/** GET /api/v1/users - all users (admin only). */
 export async function getUsers(): Promise<User[]> {
   const { data } = await api.get<User[]>("/users");
   return data;
@@ -30,7 +30,7 @@ export async function deleteUser(userId: number): Promise<void> {
 
 // --- Hotel moderation ------------------------------------------------------
 
-/** GET /api/v1/admin/hotels — every hotel regardless of status (admin moderation). */
+/** GET /api/v1/admin/hotels - every hotel regardless of status (admin moderation). */
 export async function getAdminHotels(): Promise<Hotel[]> {
   const { data } = await api.get<Hotel[]>("/admin/hotels");
   return data;
