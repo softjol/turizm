@@ -75,7 +75,7 @@ export interface HotelSearchParams {
 /** GET /api/v1/hotels — public, approved-only catalog with optional filters. */
 export async function searchHotels(params: HotelSearchParams = {}): Promise<Hotel[]> {
   const { data } = await api.get<Hotel[]>("/hotels", { params });
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 /** Create a hotel (reception). Returns the created hotel incl. its new id. */
@@ -144,7 +144,7 @@ export async function uploadHotelImage(
 /** Hotels owned by the current reception/admin user (GET /reception/hotels). */
 export async function listReceptionHotels(): Promise<Hotel[]> {
   const { data } = await api.get<Hotel[]>("/reception/hotels");
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 // --- "My hotels" tracking --------------------------------------------------

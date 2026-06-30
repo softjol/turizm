@@ -42,7 +42,7 @@ export async function createBooking(payload: BookingCreatePayload): Promise<Book
 /** GET /api/v1/bookings — bookings of the current user. */
 export async function getMyBookings(): Promise<BookingResponse[]> {
   const { data } = await api.get<BookingResponse[]>("/bookings");
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 /** GET /api/v1/bookings/{id} — single booking. */
@@ -62,7 +62,7 @@ export async function cancelBooking(bookingId: number): Promise<BookingResponse>
 /** GET /api/v1/reception/hotels/{id}/bookings — bookings for one of my hotels. */
 export async function listHotelBookings(hotelId: number): Promise<BookingResponse[]> {
   const { data } = await api.get<BookingResponse[]>(`/reception/hotels/${hotelId}/bookings`);
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 async function receptionBookingAction(

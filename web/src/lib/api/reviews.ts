@@ -23,7 +23,7 @@ export interface ReviewCreatePayload {
 /** GET /api/v1/hotels/{id}/reviews — public list of a hotel's reviews. */
 export async function getHotelReviews(hotelId: number): Promise<ReviewResponse[]> {
   const { data } = await api.get<ReviewResponse[]>(`/hotels/${hotelId}/reviews`);
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 /** POST /api/v1/hotels/{id}/reviews — leave a review (auth required). */

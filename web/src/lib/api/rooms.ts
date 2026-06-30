@@ -27,7 +27,7 @@ export interface RoomResponse {
 /** GET /api/v1/hotels/{id}/rooms — public list of a hotel's rooms. */
 export async function getHotelRooms(hotelId: number): Promise<RoomResponse[]> {
   const { data } = await api.get<RoomResponse[]>(`/hotels/${hotelId}/rooms`);
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 /** GET /api/v1/rooms/{id} — single room with images + amenities. */

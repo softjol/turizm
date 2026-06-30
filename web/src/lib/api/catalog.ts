@@ -22,11 +22,11 @@ export interface AmenityResponse {
 /** GET /api/v1/hotel-types — public list of hotel categories. */
 export async function getHotelTypes(): Promise<HotelTypeResponse[]> {
   const { data } = await api.get<HotelTypeResponse[]>("/hotel-types");
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 /** GET /api/v1/amenities — public list of amenities. */
 export async function getAmenities(): Promise<AmenityResponse[]> {
   const { data } = await api.get<AmenityResponse[]>("/amenities");
-  return data;
+  return Array.isArray(data) ? data : [];
 }
