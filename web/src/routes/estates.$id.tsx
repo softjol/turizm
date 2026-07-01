@@ -25,6 +25,7 @@ import { DatePicker } from "@/components/DatePicker";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/lib/i18n";
 import { useAutoTranslate, T } from "@/lib/translate";
+import { defaultStayDates } from "@/lib/utils";
 
 const amenityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   "Wi-Fi": Wifi,
@@ -89,8 +90,8 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
   const [selectedRoom, setSelectedRoom] = useState<(typeof estate.rooms)[number] | undefined>(
     estate.rooms[0],
   );
-  const [checkIn, setCheckIn] = useState("2026-07-10");
-  const [checkOut, setCheckOut] = useState("2026-07-14");
+  const [checkIn, setCheckIn] = useState(() => defaultStayDates().checkIn);
+  const [checkOut, setCheckOut] = useState(() => defaultStayDates().checkOut);
   const [guests, setGuests] = useState(2);
   const [fav, setFav] = useState(() => isFavorite(Number(estate.id)));
   const [copied, setCopied] = useState(false);

@@ -17,6 +17,7 @@ import { type Estate } from "@/lib/types";
 import { getEstate, createBooking, getAccessToken } from "@/lib/api";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/lib/i18n";
+import { defaultStayDates } from "@/lib/utils";
 
 const paymentMethods: { id: string; label: string; labelKey?: string; hintKey: string }[] = [
   { id: "mbank", label: "MBank", hintKey: "pay.mbank.hint" },
@@ -40,8 +41,9 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const checkIn = params.get("checkIn") ?? "2026-07-10";
-  const checkOut = params.get("checkOut") ?? "2026-07-14";
+  const fallback = defaultStayDates();
+  const checkIn = params.get("checkIn") ?? fallback.checkIn;
+  const checkOut = params.get("checkOut") ?? fallback.checkOut;
   const guests = Number(params.get("guests") ?? 2);
 
   useEffect(() => {
