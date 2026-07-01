@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   listReceptionHotels,
   getHotelRooms,
+  getRoomCalendar,
   createRoom,
   updateRoom,
   deleteRoom,
@@ -19,6 +20,7 @@ import {
   type HotelImage,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { T } from "@/lib/translate";
 
 const ROOM_TYPES: { value: RoomType; labelKey: string }[] = [
   { value: "standard", labelKey: "hrm.typeStandard" },
@@ -28,11 +30,43 @@ const ROOM_TYPES: { value: RoomType; labelKey: string }[] = [
   { value: "dorm", labelKey: "hrm.typeDorm" },
 ];
 
+const ROOM_TYPE_LABELS: Record<RoomType, string> = Object.fromEntries(
+  ROOM_TYPES.map((rt) => [rt.value, rt.labelKey]),
+) as Record<RoomType, string>;
+
+type DisplayStatus = "maintenance" | "inactive" | "booked" | "available";
+
+function roomDisplayStatus(r: RoomResponse, bookedToday: boolean): DisplayStatus {
+  if (r.status === "maintenance") return "maintenance";
+  if (r.status === "inactive") return "inactive";
+  if (bookedToday) return "booked";
+  return "available";
+}
+
+const STATUS_LABEL_KEYS: Record<DisplayStatus, string> = {
+  available: "hrm.available",
+  booked: "hrm.booked",
+  maintenance: "hrm.maintenance",
+  inactive: "hrm.inactive",
+};
+
+const STATUS_STYLES: Record<DisplayStatus, string> = {
+  available: "bg-success/15 text-success",
+  booked: "bg-primary/15 text-primary",
+  maintenance: "bg-warning/15 text-warning",
+  inactive: "bg-muted text-muted-foreground",
+};
+
+function iso(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 export default function HostRooms() {
   const { t } = useI18n();
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [hotelId, setHotelId] = useState<number | null>(null);
   const [rooms, setRooms] = useState<RoomResponse[]>([]);
+  const [bookedToday, setBookedToday] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RoomResponse | null>(null);
@@ -51,6 +85,23 @@ export default function HostRooms() {
           setRooms(all);
           setHotelId(hs[0]?.id ?? null);
         }
+
+        const today = new Date();
+        const todayStr = iso(today);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        const tomorrowStr = iso(tomorrow);
+        const entries = await Promise.all(
+          all.map(async (r) => {
+            const cal = await getRoomCalendar(r.id, todayStr, tomorrowStr).catch(() => null);
+            const booked =
+              cal?.occupied_periods.some(
+                (p) => todayStr >= p.date_from && todayStr < p.date_to,
+              ) ?? false;
+            return [r.id, booked] as const;
+          }),
+        );
+        if (active) setBookedToday(Object.fromEntries(entries));
       } catch (err) {
         console.error("[host.rooms] load failed", err);
       } finally {
@@ -65,6 +116,7 @@ export default function HostRooms() {
   function onCreated(room: RoomResponse) {
     setRooms((prev) => [...prev, room]);
     setShowForm(false);
+    setEditing(room);
   }
 
   function onUpdated(room: RoomResponse) {
@@ -119,6 +171,7 @@ export default function HostRooms() {
           {rooms.map((r) => {
             const rawCover = r.images.find((i) => i.is_main)?.url ?? r.images[0]?.url;
             const cover = rawCover ? mediaUrl(rawCover) : undefined;
+            const status = roomDisplayStatus(r, bookedToday[r.id] ?? false);
             return (
               <div
                 key={r.id}
@@ -139,14 +192,20 @@ export default function HostRooms() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-                      {r.type}
+                      {t(ROOM_TYPE_LABELS[r.type])}
                     </span>
-                    <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
-                      {t("hrm.available")}
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[status]}`}
+                    >
+                      {t(STATUS_LABEL_KEYS[status])}
                     </span>
                   </div>
-                  <div className="mt-2 font-display text-lg font-bold">{r.name}</div>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.description}</p>
+                  <div className="mt-2 font-display text-lg font-bold">
+                    <T text={r.name} />
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    <T text={r.description} />
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-4 text-sm">
                     <span>👤 {t("hrm.upTo", { n: r.capacity_adults + r.capacity_children })}</span>
                     <span>

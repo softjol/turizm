@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { Eye, Edit2, Trash2, Ban, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { searchHotels, getHotelRooms } from "@/lib/api";
+import { searchHotels, getHotelRooms, type RoomType } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { T } from "@/lib/translate";
+
+const ROOM_TYPE_LABELS: Record<RoomType, string> = {
+  standard: "hrm.typeStandard",
+  semi_lux: "hrm.typeSemiLux",
+  lux: "hrm.typeLux",
+  family: "hrm.typeFamily",
+  dorm: "hrm.typeDorm",
+};
 
 interface Row {
   id: number;
   name: string;
   hotel: string;
-  type: string;
+  type: RoomType;
   capacity: number;
   price: number;
 }
@@ -73,11 +82,13 @@ export default function AdminRooms() {
             <tbody className="divide-y divide-border/60">
               {rooms.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/40">
-                  <td className="px-5 py-4 font-semibold">{r.name}</td>
+                  <td className="px-5 py-4 font-semibold">
+                    <T text={r.name} />
+                  </td>
                   <td className="px-5 py-4">{r.hotel}</td>
                   <td className="px-5 py-4">
                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-                      {r.type}
+                      {t(ROOM_TYPE_LABELS[r.type])}
                     </span>
                   </td>
                   <td className="px-5 py-4">{r.capacity}</td>
