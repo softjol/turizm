@@ -1,6 +1,6 @@
 import datetime
 import enum
-from sqlalchemy import DateTime, Date, func, ForeignKey, Numeric, Integer, Enum
+from sqlalchemy import DateTime, Date, func, ForeignKey, Numeric, Integer, Enum, String, CheckConstraint
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
@@ -18,8 +18,11 @@ class Booking(Base):
     __tablename__ = "bookings"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    # Null for walk-in guests created by reception without a site account (see guest_name/guest_phone).
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     room_id: Mapped[int] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
+    guest_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    guest_phone: Mapped[str | None] = mapped_column(String(25), nullable=True)
     date_from: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     date_to: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     guests: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
@@ -44,6 +47,10 @@ class Booking(Base):
             (func.daterange(date_from, date_to), '&&'),
             where=(status.in_(['pending', 'confirmed', 'checked_in'])),
             name='exclude_booking_overlap'
+        ),
+        CheckConstraint(
+            "user_id IS NOT NULL OR guest_name IS NOT NULL",
+            name="check_booking_has_guest"
         ),
     )
 

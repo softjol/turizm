@@ -13,6 +13,7 @@ export interface HotelImage {
   room_id: number | null;
   url: string;
   is_main: boolean;
+  sort_order: number;
   created_at: string;
 }
 
@@ -137,6 +138,22 @@ export async function uploadHotelImage(
   const { data } = await api.post<HotelImage>(`/reception/hotels/${hotelId}/images`, form, {
     params: { is_main: isMain },
     headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+/** Delete a hotel photo - DELETE /reception/hotels/{id}/images/{imageId}. */
+export async function deleteHotelImage(hotelId: number, imageId: number): Promise<void> {
+  await api.delete(`/reception/hotels/${hotelId}/images/${imageId}`);
+}
+
+/** Persist a new photo order (PUT /reception/hotels/{id}/images/order). `imageIds` is the full set in the desired order. */
+export async function reorderHotelImages(
+  hotelId: number,
+  imageIds: number[],
+): Promise<HotelImage[]> {
+  const { data } = await api.put<HotelImage[]>(`/reception/hotels/${hotelId}/images/order`, {
+    image_ids: imageIds,
   });
   return data;
 }

@@ -9,8 +9,8 @@ from app.dependencies.dependencies import get_db
 from app.schemas.dashboard import ReceptionDashboardResponse, ReceptionFinanceResponse
 from app.schemas.hotel import HotelCreate, HotelUpdate, HotelResponse, HotelAmenitiesUpdate
 from app.schemas.room import RoomCreate, RoomUpdate, RoomResponse, RoomAvailabilityUpdate, RoomAmenitiesUpdate
-from app.schemas.booking import BookingResponse
-from app.schemas.image import ImageResponse
+from app.schemas.booking import BookingResponse, WalkInBookingCreate
+from app.schemas.image import ImageResponse, ImageReorderRequest
 from app.schemas.review import ReviewResponse, ReviewReply
 
 from app.services.dashboard import DashboardService
@@ -99,6 +99,15 @@ async def delete_hotel_image(
 ):
     await HotelService.delete_image(hotel_id, image_id, current_user.id, get_is_admin(current_user), db)
 
+@router.put("/hotels/{hotel_id}/images/order", response_model=list[ImageResponse])
+async def reorder_hotel_images(
+    hotel_id: int,
+    req: ImageReorderRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("user", "reception", "admin"))
+):
+    return await HotelService.reorder_images(hotel_id, current_user.id, get_is_admin(current_user), req.image_ids, db)
+
 # === Room Management ===
 @router.post("/hotels/{hotel_id}/rooms", response_model=RoomResponse, status_code=201)
 async def create_room(
@@ -181,6 +190,16 @@ async def get_hotel_bookings(
 ):
     # Тут тоже нужна проверка, что отель принадлежит reception
     return await BookingRepository.get_bookings(db, hotel_id=hotel_id, page=page, limit=limit)
+
+@router.post("/hotels/{hotel_id}/bookings", response_model=list[BookingResponse], status_code=201)
+async def create_walkin_booking(
+    hotel_id: int,
+    req: WalkInBookingCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("user", "reception", "admin"))
+):
+    """Ресепшен создаёт бронь для гостя, который пришёл в отель без сайта."""
+    return await BookingService.create_walkin_booking(hotel_id, current_user.id, get_is_admin(current_user), req, db)
 
 @router.patch("/bookings/{booking_id}/confirm", response_model=BookingResponse)
 async def confirm_booking(

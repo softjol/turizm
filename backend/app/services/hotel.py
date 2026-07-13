@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.hotel import Hotel, HotelStatus
 from app.models.image import Image
@@ -112,10 +112,14 @@ class HotelService:
             for img in res.scalars().all():
                 img.is_main = False
 
+        max_order_stmt = select(func.max(Image.sort_order)).where(Image.hotel_id == hotel_id)
+        max_order = (await db.execute(max_order_stmt)).scalar()
+
         image = Image(
             hotel_id=hotel_id,
             url=url,
-            is_main=is_main
+            is_main=is_main,
+            sort_order=(max_order + 1) if max_order is not None else 0
         )
         await ImageRepository.create(image, db)
         await db.commit()
@@ -126,7 +130,7 @@ class HotelService:
         hotel = await HotelRepository.get_by_id(hotel_id, db)
         if not hotel:
             raise HTTPException(status_code=404, detail="Hotel not found")
-            
+
         await cls._check_permission(hotel, user_id, is_admin)
 
         image = await ImageRepository.get_by_id(image_id, db)
@@ -135,3 +139,24 @@ class HotelService:
 
         await ImageRepository.delete(image, db)
         await db.commit()
+
+    @classmethod
+    async def reorder_images(cls, hotel_id: int, user_id: int, is_admin: bool, image_ids: list[int], db: AsyncSession) -> list[Image]:
+        hotel = await HotelRepository.get_by_id(hotel_id, db)
+        if not hotel:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+
+        await cls._check_permission(hotel, user_id, is_admin)
+
+        stmt = select(Image).where(Image.hotel_id == hotel_id)
+        res = await db.execute(stmt)
+        images_by_id = {img.id: img for img in res.scalars().all()}
+
+        if set(images_by_id.keys()) != set(image_ids):
+            raise HTTPException(status_code=400, detail="image_ids must match the hotel's current set of images")
+
+        for order, image_id in enumerate(image_ids):
+            images_by_id[image_id].sort_order = order
+
+        await db.commit()
+        return sorted(images_by_id.values(), key=lambda img: img.sort_order)

@@ -7,6 +7,7 @@ class ImageResponse(BaseModel):
     room_id: int | None = None
     url: str
     is_main: bool
+    sort_order: int
     created_at: datetime.datetime
 
     class Config:
@@ -15,3 +16,7 @@ class ImageResponse(BaseModel):
 class ImageCreate(BaseModel):
     url: str
     is_main: bool = False
+
+class ImageReorderRequest(BaseModel):
+    """Ordered list of ALL image ids belonging to the hotel/room, in the desired order."""
+    image_ids: list[int]

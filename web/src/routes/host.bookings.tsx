@@ -1,14 +1,27 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { Check, X, LogIn, LogOut, Loader2 } from "lucide-react";
+import { isAxiosError } from "axios";
+import { Check, X, LogIn, LogOut, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   listReceptionHotels,
   listHotelBookings,
   getHotelRooms,
+  createWalkInBooking,
   confirmBooking,
   rejectBooking,
   checkInBooking,
   checkOutBooking,
+  type Hotel,
+  type RoomResponse,
   type BookingResponse,
   type BookingStatus,
 } from "@/lib/api";
@@ -32,21 +45,26 @@ const TAB_STATUSES: Record<TabKey, BookingStatus[]> = {
 export default function HostBookings() {
   const { t } = useI18n();
   const [rows, setRows] = useState<Row[]>([]);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [roomsByHotel, setRoomsByHotel] = useState<Record<number, RoomResponse[]>>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("new");
   const [busy, setBusy] = useState<number | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const hotels = await listReceptionHotels();
+        const myHotels = await listReceptionHotels();
         const all: Row[] = [];
-        for (const h of hotels) {
+        const roomsMap: Record<number, RoomResponse[]> = {};
+        for (const h of myHotels) {
           const [rooms, bookings] = await Promise.all([
             getHotelRooms(h.id).catch(() => []),
             listHotelBookings(h.id).catch(() => []),
           ]);
+          roomsMap[h.id] = rooms;
           const roomName = new Map(rooms.map((r) => [r.id, r.name]));
           for (const b of bookings) {
             all.push({
@@ -56,7 +74,11 @@ export default function HostBookings() {
             });
           }
         }
-        if (active) setRows(all);
+        if (active) {
+          setHotels(myHotels);
+          setRoomsByHotel(roomsMap);
+          setRows(all);
+        }
       } catch (err) {
         console.error("[host.bookings] load failed", err);
       } finally {
@@ -67,6 +89,18 @@ export default function HostBookings() {
       active = false;
     };
   }, []);
+
+  function handleCreated(hotelId: number, created: BookingResponse[]) {
+    const hotel = hotels.find((h) => h.id === hotelId);
+    const roomName = new Map((roomsByHotel[hotelId] ?? []).map((r) => [r.id, r.name]));
+    const newRows: Row[] = created.map((booking) => ({
+      ...booking,
+      hotelName: hotel?.name ?? `#${hotelId}`,
+      roomName: roomName.get(booking.room_id) ?? `#${booking.room_id}`,
+    }));
+    setRows((prev) => [...newRows, ...prev]);
+    setShowCreate(false);
+  }
 
   const tabs: TabKey[] = ["new", "confirmed", "checkedIn", "completed", "cancelled"];
   const TAB_LABEL: Record<TabKey, string> = {
@@ -148,8 +182,19 @@ export default function HostBookings() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-extrabold">{t("hb.title")}</h1>
-      <p className="mt-1 text-muted-foreground">{t("hb.subtitle")}</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold">{t("hb.title")}</h1>
+          <p className="mt-1 text-muted-foreground">{t("hb.subtitle")}</p>
+        </div>
+        <Button
+          onClick={() => setShowCreate(true)}
+          disabled={hotels.length === 0}
+          className="gap-2 rounded-xl"
+        >
+          <Plus className="h-4 w-4" /> {t("hb.newBooking")}
+        </Button>
+      </div>
 
       <div className="mt-6 flex flex-wrap gap-2 border-b border-border/70 pb-3">
         {tabs.map((tk) => {
@@ -195,7 +240,12 @@ export default function HostBookings() {
               {visible.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/40">
                   <td className="whitespace-nowrap px-5 py-4 font-semibold">
-                    {t("hb.guestN", { id: r.user_id })}
+                    {r.guest_name ?? t("hb.guestN", { id: r.user_id ?? r.id })}
+                    {r.guest_phone && (
+                      <div className="text-xs font-normal text-muted-foreground">
+                        {r.guest_phone}
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-4">{r.hotelName}</td>
                   <td className="px-5 py-4">{r.roomName}</td>
@@ -214,6 +264,229 @@ export default function HostBookings() {
           </table>
         </div>
       )}
+
+      <CreateWalkInDialog
+        open={showCreate}
+        hotels={hotels}
+        roomsByHotel={roomsByHotel}
+        onClose={() => setShowCreate(false)}
+        onCreated={handleCreated}
+      />
     </div>
+  );
+}
+
+function CreateWalkInDialog({
+  open,
+  hotels,
+  roomsByHotel,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  hotels: Hotel[];
+  roomsByHotel: Record<number, RoomResponse[]>;
+  onClose: () => void;
+  onCreated: (hotelId: number, bookings: BookingResponse[]) => void;
+}) {
+  const { t } = useI18n();
+  const [hotelId, setHotelId] = useState<number | null>(null);
+  const [roomIds, setRoomIds] = useState<number[]>([]);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [guests, setGuests] = useState("1");
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [checkInNow, setCheckInNow] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setHotelId(hotels[0]?.id ?? null);
+      setRoomIds([]);
+      setDateFrom("");
+      setDateTo("");
+      setGuests("1");
+      setGuestName("");
+      setGuestPhone("");
+      setCheckInNow(false);
+      setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const rooms = hotelId ? (roomsByHotel[hotelId] ?? []) : [];
+
+  function toggleRoom(roomId: number) {
+    setRoomIds((prev) =>
+      prev.includes(roomId) ? prev.filter((id) => id !== roomId) : [...prev, roomId],
+    );
+  }
+
+  function describeError(err: unknown): string {
+    if (isAxiosError(err)) {
+      const detail = (err.response?.data as { detail?: string } | undefined)?.detail;
+      if (detail) return detail;
+      return err.message;
+    }
+    return err instanceof Error ? err.message : t("hb.createError");
+  }
+
+  async function handleSubmit() {
+    setError(null);
+    if (!hotelId || roomIds.length === 0) {
+      setError(t("hb.errRoom"));
+      return;
+    }
+    if (!dateFrom || !dateTo || dateFrom >= dateTo) {
+      setError(t("hb.errDates"));
+      return;
+    }
+    if (guestName.trim().length < 2) {
+      setError(t("hb.errGuestName"));
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const bookings = await createWalkInBooking(hotelId, {
+        room_ids: roomIds,
+        date_from: dateFrom,
+        date_to: dateTo,
+        guests: Number(guests) || 1,
+        guest_name: guestName.trim(),
+        guest_phone: guestPhone.trim() || null,
+        check_in_now: checkInNow,
+      });
+      onCreated(hotelId, bookings);
+    } catch (err) {
+      setError(describeError(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t("hb.newBookingTitle")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t("hb.newBookingHint")}</p>
+          {error && (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          {hotels.length > 1 && (
+            <label className="block">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("hb.hotel")}
+              </div>
+              <select
+                value={hotelId ?? ""}
+                onChange={(e) => {
+                  setHotelId(Number(e.target.value));
+                  setRoomIds([]);
+                }}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {hotels.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <div>
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("hb.rooms")}
+            </div>
+            <p className="mb-2 text-xs text-muted-foreground">{t("hb.roomsHint")}</p>
+            {rooms.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("hb.selectRoom")}</p>
+            ) : (
+              <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-input p-2">
+                {rooms.map((r) => (
+                  <label
+                    key={r.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
+                  >
+                    <Checkbox
+                      checked={roomIds.includes(r.id)}
+                      onCheckedChange={() => toggleRoom(r.id)}
+                    />
+                    {r.name} ({r.room_number})
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("hb.dateFrom")}
+              </div>
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            </label>
+            <label className="block">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("hb.dateTo")}
+              </div>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            </label>
+          </div>
+
+          <label className="block">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("hb.guests")}
+            </div>
+            <Input
+              type="number"
+              min={1}
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("hb.guestName")}
+            </div>
+            <Input value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+          </label>
+
+          <label className="block">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("hb.guestPhone")}
+            </div>
+            <Input value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={checkInNow}
+              onChange={(e) => setCheckInNow(e.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            {t("hb.checkInNow")}
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={submitting}>
+            {t("ho.cancel")}
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("hb.create")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

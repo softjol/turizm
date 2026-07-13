@@ -2,6 +2,7 @@
 import type { User, Role } from "./auth";
 import type { Hotel, HotelStatus } from "./hotels";
 import type { HotelTypeResponse, AmenityResponse } from "./catalog";
+import type { BookingResponse, BookingStatus } from "./bookings";
 
 // --- Users -----------------------------------------------------------------
 
@@ -61,6 +62,48 @@ export async function createAmenity(name: string, slug: string): Promise<Amenity
 
 export async function deleteAmenity(id: number): Promise<void> {
   await api.delete(`/amenities/${id}`);
+}
+
+// --- Bookings ----------------------------------------------------------------
+
+/** Mirrors app/schemas/booking.py AdminBookingResponse. */
+export interface AdminBookingResponse {
+  id: number;
+  /** Null for walk-in bookings created by reception without a site account. */
+  user_id: number | null;
+  guest_name: string;
+  guest_phone: string | null;
+  room_id: number;
+  room_number: string;
+  hotel_id: number;
+  hotel_name: string;
+  date_from: string;
+  date_to: string;
+  guests: number;
+  total_amount: string;
+  deposit_amount: string;
+  is_paid: boolean;
+  status: BookingStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+/** GET /api/v1/admin/bookings - bookings on the platform, optionally filtered by status, paginated. */
+export async function getAdminBookings(
+  status?: BookingStatus,
+  page = 1,
+  limit = 100,
+): Promise<AdminBookingResponse[]> {
+  const { data } = await api.get<AdminBookingResponse[]>("/admin/bookings", {
+    params: { ...(status ? { status } : undefined), page, limit },
+  });
+  return Array.isArray(data) ? data : [];
+}
+
+/** PATCH /api/v1/admin/bookings/{id}/cancel - admin cancels any booking. */
+export async function adminCancelBooking(bookingId: number): Promise<BookingResponse> {
+  const { data } = await api.patch<BookingResponse>(`/admin/bookings/${bookingId}/cancel`);
+  return data;
 }
 
 // --- Complaints ------------------------------------------------------------

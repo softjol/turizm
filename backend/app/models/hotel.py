@@ -43,6 +43,11 @@ class Hotel(Base):
     owner = relationship("User", back_populates="hotels")
     hotel_type = relationship("HotelType", back_populates="hotels")
     rooms = relationship("Room", back_populates="hotel", cascade="all, delete-orphan")
-    images = relationship("Image", back_populates="hotel", cascade="all, delete-orphan")
+    images = relationship(
+        "Image",
+        back_populates="hotel",
+        cascade="all, delete-orphan",
+        order_by="Image.sort_order, Image.id",
+    )
     reviews = relationship("Review", back_populates="hotel", cascade="all, delete-orphan")
     amenities = relationship("Amenity", secondary="hotel_amenities", back_populates="hotels")

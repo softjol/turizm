@@ -1,7 +1,7 @@
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.models.booking import Booking
+from app.models.booking import Booking, BookingStatus
 from app.models.room import Room
 from app.models.hotel import Hotel
 from app.repositories.base import BaseRepository
@@ -30,11 +30,12 @@ class BookingRepository(BaseRepository):
         db: AsyncSession,
         user_id: int | None = None,
         hotel_id: int | None = None,
+        status: BookingStatus | None = None,
         page: int = 1,
         limit: int = 10
     ) -> list[Booking]:
         page = max(page, 1)
-        limit = min(max(limit, 1), 100)
+        limit = min(max(limit, 1), 200)
         offset = (page - 1) * limit
 
         query = select(cls.model)
@@ -44,6 +45,9 @@ class BookingRepository(BaseRepository):
 
         if hotel_id is not None:
             query = query.join(cls.model.room).join(Room.hotel).where(Hotel.id == hotel_id)
+
+        if status is not None:
+            query = query.where(cls.model.status == status)
 
         query = query.order_by(cls.model.created_at.desc()).offset(offset).limit(limit)
         query = query.options(
@@ -64,7 +68,6 @@ class BookingRepository(BaseRepository):
         date_to: str,
         exclude_booking_id: int | None = None
     ) -> bool:
-        from app.models.booking import BookingStatus
         query = select(cls.model).where(
             cls.model.room_id == room_id,
             cls.model.status.in_([BookingStatus.pending, BookingStatus.confirmed, BookingStatus.checked_in]),

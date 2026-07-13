@@ -28,14 +28,11 @@ import {
   type AmenityResponse,
 } from "@/lib/api";
 
-function parseCoords(input: string): { latitude: number | null; longitude: number | null } {
-  const [latRaw, lngRaw] = input.split(",").map((s) => s.trim());
-  const latitude = latRaw ? Number(latRaw) : NaN;
-  const longitude = lngRaw ? Number(lngRaw) : NaN;
-  return {
-    latitude: Number.isFinite(latitude) ? latitude : null,
-    longitude: Number.isFinite(longitude) ? longitude : null,
-  };
+function parseCoord(input: string): number | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : null;
 }
 
 export default function NewObjectWizard() {
@@ -52,7 +49,8 @@ export default function NewObjectWizard() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
-  const [coords, setCoords] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -112,7 +110,11 @@ export default function NewObjectWizard() {
   async function handlePublish() {
     setError(null);
 
-    const { latitude, longitude } = parseCoords(coords);
+    if (hotelTypeId === null) {
+      setError(t("no.errType"));
+      return;
+    }
+
     setSubmitting(true);
     try {
       const hotel = await createHotel({
@@ -120,15 +122,13 @@ export default function NewObjectWizard() {
         name: name.trim(),
         description: description.trim(),
         address: address.trim(),
-        latitude,
-        longitude,
+        latitude: parseCoord(latitude),
+        longitude: parseCoord(longitude),
         phone: phone.trim(),
         whatsapp: whatsapp.trim(),
         email: email.trim() || null,
         check_in_time: checkIn,
         check_out_time: checkOut,
-        latitude: null,
-        longitude: null,
       });
       if (amenities.length > 0) {
         await setHotelAmenities(hotel.id, amenities);
@@ -219,6 +219,26 @@ export default function NewObjectWizard() {
                     placeholder={t("no.fAddressPh")}
                   />
                 </Field>
+                <div className="sm:col-span-2">
+                  <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("no.fLocation")}
+                  </div>
+                  <p className="mb-2 text-xs text-muted-foreground">{t("no.fLocationHint")}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value)}
+                      inputMode="decimal"
+                      placeholder={t("no.fLatitudePh")}
+                    />
+                    <Input
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value)}
+                      inputMode="decimal"
+                      placeholder={t("no.fLongitudePh")}
+                    />
+                  </div>
+                </div>
                 <Field label={t("no.fEmail")}>
                   <Input
                     type="email"

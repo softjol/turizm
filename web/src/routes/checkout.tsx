@@ -14,7 +14,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { type Estate } from "@/lib/types";
-import { getEstate, createBooking, getAccessToken } from "@/lib/api";
+import { getEstate, createMultiBooking, getAccessToken } from "@/lib/api";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/lib/i18n";
 import { defaultStayDates } from "@/lib/utils";
@@ -70,21 +70,33 @@ export default function CheckoutPage() {
     };
   }, [id]);
 
-  const room = estate?.rooms.find((r) => r.id === params.get("room")) ?? estate?.rooms[0];
+  // "rooms" is a comma-separated list of room ids (multi-room booking); "room" (singular)
+  // is kept as a fallback for older links carrying just one room id.
+  const roomsParam = params.get("rooms");
+  const requestedIds = roomsParam
+    ? roomsParam.split(",").filter(Boolean)
+    : params.get("room")
+      ? [params.get("room") as string]
+      : [];
+  const rooms = estate
+    ? (requestedIds.length > 0
+        ? estate.rooms.filter((r) => requestedIds.includes(r.id))
+        : estate.rooms.slice(0, 1))
+    : [];
 
   const nights = Math.max(
     1,
     Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000),
   );
-  const total = (room?.price ?? 0) * nights;
-  const deposit = Math.round(total * 0.3);
+  const total = rooms.reduce((sum, r) => sum + r.price, 0) * nights;
+  const deposit = Math.round(total * 0.2);
   const fmt = (n: number) => n.toLocaleString("ru-RU");
   const dateLocale = lang === "en" ? "en-US" : "ru-RU";
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString(dateLocale, { day: "numeric", month: "long" });
 
   async function handlePay() {
-    if (!room) return;
+    if (rooms.length === 0) return;
     // Booking creation requires authentication - send guests to login first.
     if (!getAccessToken()) {
       navigate("/auth");
@@ -93,8 +105,8 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createBooking({
-        room_id: Number(room.id),
+      await createMultiBooking({
+        room_ids: rooms.map((r) => Number(r.id)),
         date_from: checkIn,
         date_to: checkOut,
         guests,
@@ -120,7 +132,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!estate || !room) {
+  if (!estate || rooms.length === 0) {
     return (
       <AppShell>
         <div className="container-app py-24 text-center">
@@ -213,12 +225,17 @@ export default function CheckoutPage() {
                     </div>
                   </Section>
 
-                  <Section title={t("co.room")}>
-                    <Row label={t("co.roomType")} value={`${td(room.name)} · ${td(room.type)}`} />
-                    <Row
-                      label={t("co.pricePerNight")}
-                      value={`${fmt(room.price)} ${t("common.kgs")}`}
-                    />
+                  <Section title={rooms.length > 1 ? t("co.rooms") : t("co.room")}>
+                    {rooms.map((r, i) => (
+                      <div key={r.id}>
+                        {i > 0 && <div className="my-2 border-t border-border" />}
+                        <Row label={t("co.roomType")} value={`${td(r.name)} · ${td(r.type)}`} />
+                        <Row
+                          label={t("co.pricePerNight")}
+                          value={`${fmt(r.price)} ${t("common.kgs")}`}
+                        />
+                      </div>
+                    ))}
                   </Section>
 
                   <Section title={t("co.datesGuests")}>
@@ -285,7 +302,7 @@ export default function CheckoutPage() {
                 <div className="font-display text-lg font-bold">{t("co.total")}</div>
                 <div className="mt-4 space-y-2 text-sm">
                   <Row
-                    label={t("detail.priceTimesNights", { price: fmt(room.price), n: nights })}
+                    label={t("detail.roomsTimesNights", { n: rooms.length, nights })}
                     value={`${fmt(total)} ${t("common.kgs")}`}
                   />
                   <Row label={t("detail.serviceFee")} value={`0 ${t("common.kgs")}`} />

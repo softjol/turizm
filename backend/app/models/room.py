@@ -44,6 +44,11 @@ class Room(Base):
     )
 
     hotel = relationship("Hotel", back_populates="rooms")
-    images = relationship("Image", back_populates="room", cascade="all, delete-orphan")
+    images = relationship(
+        "Image",
+        back_populates="room",
+        cascade="all, delete-orphan",
+        order_by="Image.sort_order, Image.id",
+    )
     bookings = relationship("Booking", back_populates="room", cascade="all, delete-orphan")
     amenities = relationship("Amenity", secondary="room_amenities", back_populates="rooms")

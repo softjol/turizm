@@ -9,20 +9,25 @@ from app.schemas.hotel_type import HotelTypeResponse, HotelTypeCreate, HotelType
 from app.schemas.amenity import AmenityResponse, AmenityCreate, AmenityUpdate
 from app.schemas.hotel import HotelResponse, HotelStatusUpdate
 from app.schemas.complaint import ComplaintResponse, ComplaintStatusUpdate
+from app.schemas.booking import BookingResponse, AdminBookingResponse
 
 from app.services.dashboard import DashboardService
 from app.services.complaint import ComplaintService
 from app.services.hotel import HotelService
+from app.services.booking import BookingService
 
 from app.repositories.user import UserRepository
 from app.repositories.hotel_type import HotelTypeRepository
 from app.repositories.amenity import AmenityRepository
 from app.repositories.complaint import ComplaintRepository
 from app.repositories.hotel import HotelRepository
+from app.repositories.booking import BookingRepository
 
 from app.dependencies.dependencies import get_current_user, require_role
 from app.models.user import User
 from app.models.hotel import HotelStatus
+from app.models.booking import BookingStatus
+from app.models.payment import PaymentStatus
 
 router = APIRouter(tags=["Admin"])
 
@@ -200,6 +205,49 @@ async def delete_hotel(hotel_id: int, db: AsyncSession = Depends(get_db), curren
     if current_user.role.value == "reception" and hotel.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Permission denied")
     await HotelService.delete_hotel(hotel_id, db)
+
+# === Bookings ===
+@router.get("/admin/bookings", response_model=list[AdminBookingResponse])
+async def list_all_bookings(
+    status: BookingStatus | None = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin"))
+):
+    """Все бронирования платформы, с фильтром по статусу."""
+    bookings = await BookingRepository.get_bookings(db, status=status, page=page, limit=limit)
+    return [
+        AdminBookingResponse(
+            id=b.id,
+            user_id=b.user_id,
+            guest_name=b.user.name if b.user else (b.guest_name or f"Гость #{b.id}"),
+            guest_phone=b.guest_phone,
+            room_id=b.room_id,
+            room_number=b.room.room_number if b.room else "-",
+            hotel_id=b.room.hotel_id if b.room else 0,
+            hotel_name=b.room.hotel.name if b.room and b.room.hotel else "-",
+            date_from=b.date_from,
+            date_to=b.date_to,
+            guests=b.guests,
+            total_amount=b.total_amount,
+            deposit_amount=b.deposit_amount,
+            is_paid=any(p.status == PaymentStatus.paid for p in b.payments),
+            status=b.status,
+            created_at=b.created_at,
+            updated_at=b.updated_at,
+        )
+        for b in bookings
+    ]
+
+@router.patch("/admin/bookings/{booking_id}/cancel", response_model=BookingResponse)
+async def admin_cancel_booking(
+    booking_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin"))
+):
+    """Отмена бронирования администратором."""
+    return await BookingService.cancel_booking(booking_id, current_user.id, True, db)
 
 # === Complaints ===
 @router.get("/complaints", response_model=list[ComplaintResponse])

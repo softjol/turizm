@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import DateTime, func, String, ForeignKey, Boolean
+from sqlalchemy import DateTime, func, String, ForeignKey, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
 
@@ -11,6 +11,7 @@ class Image(Base):
     room_id: Mapped[int | None] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"), nullable=True)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     is_main: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

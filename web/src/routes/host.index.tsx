@@ -138,7 +138,9 @@ export default function HostDashboard() {
                 {agg?.recent.map((b) => (
                   <div key={b.id} className="flex items-center justify-between py-3">
                     <div>
-                      <div className="font-semibold">{t("hb.guestN", { id: b.user_id })}</div>
+                      <div className="font-semibold">
+                        {b.guest_name ?? t("hb.guestN", { id: b.user_id ?? b.id })}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {fmt(b.date_from)} → {fmt(b.date_to)}
                       </div>

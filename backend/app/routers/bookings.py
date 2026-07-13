@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.dependencies import get_db
-from app.schemas.booking import BookingCreate, BookingResponse
+from app.schemas.booking import BookingCreate, MultiBookingCreate, BookingResponse
 from app.services.booking import BookingService
 from app.repositories.booking import BookingRepository
 from app.dependencies.dependencies import get_current_user
@@ -17,6 +17,15 @@ async def create_booking(
 ):
     """Создание бронирования пользователем."""
     return await BookingService.create_booking(current_user.id, req, db)
+
+@router.post("/multi", response_model=list[BookingResponse], status_code=201)
+async def create_multi_booking(
+    req: MultiBookingCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Забронировать несколько комнат одновременно (одни и те же даты)."""
+    return await BookingService.create_multi_booking(current_user.id, req, db)
 
 @router.get("", response_model=list[BookingResponse])
 async def get_my_bookings(

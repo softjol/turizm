@@ -1,13 +1,30 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { isAxiosError } from "axios";
-import { Plus, Edit2, Trash2, Eye, Loader2, Upload } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, Loader2, Upload, GripVertical, X } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   listReceptionHotels,
   updateHotel,
   deleteHotel,
   removeMyHotelId,
   uploadHotelImage,
+  deleteHotelImage,
+  reorderHotelImages,
   mediaUrl,
   type Hotel,
   type HotelImage,
@@ -215,7 +232,9 @@ function EditDialog({
   const [images, setImages] = useState<HotelImage[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     if (hotel) {
@@ -249,6 +268,54 @@ function EditDialog({
       );
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleRemoveImage(imageId: number) {
+    if (!hotel) return;
+    setError(null);
+    try {
+      await deleteHotelImage(hotel.id, imageId);
+      const next = images.filter((i) => i.id !== imageId);
+      setImages(next);
+      onImagesUpdated(hotel.id, next);
+    } catch (err) {
+      setError(
+        isAxiosError(err)
+          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
+          : t("ho.deleteError"),
+      );
+    }
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!hotel || !over || active.id === over.id) return;
+
+    const oldIndex = images.findIndex((i) => i.id === active.id);
+    const newIndex = images.findIndex((i) => i.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const next = arrayMove(images, oldIndex, newIndex);
+    setImages(next);
+    setReordering(true);
+    setError(null);
+    try {
+      const saved = await reorderHotelImages(
+        hotel.id,
+        next.map((i) => i.id),
+      );
+      setImages(saved);
+      onImagesUpdated(hotel.id, saved);
+    } catch (err) {
+      setImages(images); // revert on failure
+      setError(
+        isAxiosError(err)
+          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
+          : t("ho.deleteError"),
+      );
+    } finally {
+      setReordering(false);
     }
   }
 
@@ -311,16 +378,27 @@ function EditDialog({
               {t("ho.photos")}
             </div>
             {images.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2">
-                {images.map((img) => (
-                  <img
-                    key={img.id}
-                    src={mediaUrl(img.url)}
-                    alt=""
-                    className="h-16 w-16 rounded-lg object-cover"
-                  />
-                ))}
-              </div>
+              <>
+                <p className="mb-2 text-xs text-muted-foreground">{t("ho.dragHint")}</p>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={images.map((i) => i.id)} strategy={rectSortingStrategy}>
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {images.map((img) => (
+                        <SortablePhoto
+                          key={img.id}
+                          image={img}
+                          disabled={reordering}
+                          onRemove={() => handleRemoveImage(img.id)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              </>
             )}
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface px-4 py-3 text-sm font-semibold text-primary transition hover:border-primary hover:bg-accent/40">
               {uploading ? (
@@ -350,6 +428,57 @@ function EditDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SortablePhoto({
+  image,
+  disabled,
+  onRemove,
+}: {
+  image: HotelImage;
+  disabled: boolean;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: image.id,
+    disabled,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group relative h-16 w-16 shrink-0 rounded-lg ${isDragging ? "z-10 opacity-70" : ""}`}
+    >
+      <img
+        src={mediaUrl(image.url)}
+        alt=""
+        className="h-16 w-16 rounded-lg object-cover"
+        draggable={false}
+      />
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="absolute -top-1.5 -left-1.5 flex h-5 w-5 cursor-grab items-center justify-center rounded-full border border-border bg-card text-muted-foreground opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+        aria-label="drag"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-destructive opacity-0 transition group-hover:opacity-100"
+        aria-label="remove"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
   );
 }
 

@@ -12,7 +12,10 @@ export type BookingStatus =
 
 export interface BookingResponse {
   id: number;
-  user_id: number;
+  /** Null for walk-in bookings created by reception without a site account. */
+  user_id: number | null;
+  guest_name: string | null;
+  guest_phone: string | null;
   room_id: number;
   date_from: string;
   date_to: string;
@@ -39,6 +42,21 @@ export async function createBooking(payload: BookingCreatePayload): Promise<Book
   return data;
 }
 
+export interface MultiBookingCreatePayload {
+  room_ids: number[];
+  date_from: string;
+  date_to: string;
+  guests: number;
+}
+
+/** POST /api/v1/bookings/multi - book several rooms at once (same dates), e.g. 2 rooms for a family. */
+export async function createMultiBooking(
+  payload: MultiBookingCreatePayload,
+): Promise<BookingResponse[]> {
+  const { data } = await api.post<BookingResponse[]>("/bookings/multi", payload);
+  return Array.isArray(data) ? data : [];
+}
+
 /** GET /api/v1/bookings - bookings of the current user. */
 export async function getMyBookings(): Promise<BookingResponse[]> {
   const { data } = await api.get<BookingResponse[]>("/bookings");
@@ -62,6 +80,29 @@ export async function cancelBooking(bookingId: number): Promise<BookingResponse>
 /** GET /api/v1/reception/hotels/{id}/bookings - bookings for one of my hotels. */
 export async function listHotelBookings(hotelId: number): Promise<BookingResponse[]> {
   const { data } = await api.get<BookingResponse[]>(`/reception/hotels/${hotelId}/bookings`);
+  return Array.isArray(data) ? data : [];
+}
+
+export interface WalkInBookingPayload {
+  room_ids: number[];
+  date_from: string;
+  date_to: string;
+  guests: number;
+  guest_name: string;
+  guest_phone?: string | null;
+  /** Guest is already at the hotel - check them in immediately instead of just confirming. */
+  check_in_now?: boolean;
+}
+
+/** POST /api/v1/reception/hotels/{id}/bookings - create booking(s) for a walk-in guest (no site account). */
+export async function createWalkInBooking(
+  hotelId: number,
+  payload: WalkInBookingPayload,
+): Promise<BookingResponse[]> {
+  const { data } = await api.post<BookingResponse[]>(
+    `/reception/hotels/${hotelId}/bookings`,
+    payload,
+  );
   return Array.isArray(data) ? data : [];
 }
 
