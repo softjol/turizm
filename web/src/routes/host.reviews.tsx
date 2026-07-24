@@ -10,6 +10,7 @@ import {
   type Hotel,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { translateApiError } from "@/lib/apiError";
 
 export default function HostReviews() {
   const { t } = useI18n();
@@ -61,10 +62,7 @@ export default function HostReviews() {
       setReplyTo(null);
       setReplyText("");
     } catch (err) {
-      alert(
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-          (err as Error).message,
-      );
+      alert(translateApiError(err, t));
     } finally {
       setSaving(false);
     }

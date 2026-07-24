@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import { Check, X, LogIn, LogOut, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,10 +122,7 @@ export default function HostBookings() {
       const updated = await fn(id);
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: updated.status } : r)));
     } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        (err as Error).message;
-      alert(detail);
+      alert(translateApiError(err, t));
     } finally {
       setBusy(null);
     }
@@ -325,12 +322,7 @@ function CreateWalkInDialog({
   }
 
   function describeError(err: unknown): string {
-    if (isAxiosError(err)) {
-      const detail = (err.response?.data as { detail?: string } | undefined)?.detail;
-      if (detail) return detail;
-      return err.message;
-    }
-    return err instanceof Error ? err.message : t("hb.createError");
+    return translateApiError(err, t, "hb.createError");
   }
 
   async function handleSubmit() {

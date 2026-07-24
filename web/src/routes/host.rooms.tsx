@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import { Plus, Edit2, Trash2, X, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -305,11 +305,7 @@ function RoomForm({
       setImages(next);
       onRoomImages(editRoom.id, next);
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("ho.deleteError"),
-      );
+      setError(translateApiError(err, t, "ho.deleteError"));
     } finally {
       setUploading(false);
     }
@@ -324,11 +320,7 @@ function RoomForm({
       setImages(next);
       onRoomImages(editRoom.id, next);
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("ho.deleteError"),
-      );
+      setError(translateApiError(err, t, "ho.deleteError"));
     }
   }
 
@@ -355,11 +347,7 @@ function RoomForm({
         onCreated(await createRoom(hotelId, payload));
       }
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("hrm.validation"),
-      );
+      setError(translateApiError(err, t, "hrm.validation"));
     } finally {
       setSaving(false);
     }

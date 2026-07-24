@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import {
   Building2,
   Home,
@@ -71,19 +72,14 @@ export default function NewObjectWizard() {
   }, []);
 
   function describeError(err: unknown): string {
+    // FastAPI's automatic validation errors come back as an array of
+    // {loc, msg} objects in English - not worth translating field by field,
+    // so just point the user at the form instead of leaking raw Pydantic text.
     if (isAxiosError(err)) {
       const detail = (err.response?.data as { detail?: unknown } | undefined)?.detail;
-      if (typeof detail === "string") return detail;
-      if (Array.isArray(detail)) {
-        return detail
-          .map((d: { msg?: string; loc?: unknown[] }) =>
-            d.loc ? `${d.loc.slice(-1)}: ${d.msg}` : d.msg,
-          )
-          .join("; ");
-      }
-      return err.message;
+      if (Array.isArray(detail)) return t("err.invalidPayload");
     }
-    return err instanceof Error ? err.message : t("no.createError");
+    return translateApiError(err, t, "no.createError");
   }
 
   function handleNext() {

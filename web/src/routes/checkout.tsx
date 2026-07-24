@@ -1,6 +1,6 @@
 ﻿import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import {
   ArrowLeft,
   Check,
@@ -113,10 +113,7 @@ export default function CheckoutPage() {
       });
       setStep("done");
     } catch (err) {
-      const detail = isAxiosError(err)
-        ? (err.response?.data as { detail?: string })?.detail
-        : undefined;
-      setError(detail ?? t("co.createError"));
+      setError(translateApiError(err, t, "co.createError"));
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import { User, Phone, Mail, Languages, Loader2, Check } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -45,11 +45,7 @@ export default function ProfilePage() {
       await refresh();
       setSaved(true);
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("profile.saveError"),
-      );
+      setError(translateApiError(err, t, "profile.saveError"));
     } finally {
       setSaving(false);
     }

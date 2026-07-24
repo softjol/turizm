@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import { Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,11 +85,7 @@ export function ReviewForm({ hotelId, onSubmitted }: { hotelId: number; onSubmit
       setDone(true);
       onSubmitted();
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("rv.error"),
-      );
+      setError(translateApiError(err, t, "rv.error"));
     } finally {
       setSubmitting(false);
     }

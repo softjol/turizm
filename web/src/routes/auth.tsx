@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2, UserPlus, Users, Building2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
@@ -32,11 +32,7 @@ export default function AuthPage() {
   const [resent, setResent] = useState(false);
 
   function describeError(err: unknown): string {
-    if (isAxiosError(err)) {
-      const detail = (err.response?.data as { detail?: string } | undefined)?.detail;
-      return detail ?? err.message;
-    }
-    return err instanceof Error ? err.message : "Unexpected error";
+    return translateApiError(err, t);
   }
 
   function switchMode(next: Mode) {

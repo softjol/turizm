@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { isAxiosError } from "axios";
+import { translateApiError } from "@/lib/apiError";
 import { Plus, Edit2, Trash2, Eye, Loader2, Upload, GripVertical, X } from "lucide-react";
 import {
   DndContext,
@@ -77,10 +77,7 @@ export default function HostObjects() {
       removeMyHotelId(hotel.id);
       setObjects((prev) => prev.filter((h) => h.id !== hotel.id));
     } catch (err) {
-      const detail = isAxiosError(err)
-        ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-        : t("ho.deleteError");
-      alert(detail);
+      alert(translateApiError(err, t, "ho.deleteError"));
     }
   }
 
@@ -261,11 +258,7 @@ function EditDialog({
       setImages(next);
       onImagesUpdated(hotel.id, next);
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("ho.deleteError"),
-      );
+      setError(translateApiError(err, t, "ho.deleteError"));
     } finally {
       setUploading(false);
     }
@@ -280,11 +273,7 @@ function EditDialog({
       setImages(next);
       onImagesUpdated(hotel.id, next);
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("ho.deleteError"),
-      );
+      setError(translateApiError(err, t, "ho.deleteError"));
     }
   }
 
@@ -309,11 +298,7 @@ function EditDialog({
       onImagesUpdated(hotel.id, saved);
     } catch (err) {
       setImages(images); // revert on failure
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("ho.deleteError"),
-      );
+      setError(translateApiError(err, t, "ho.deleteError"));
     } finally {
       setReordering(false);
     }
@@ -333,11 +318,7 @@ function EditDialog({
       });
       onSaved(updated);
     } catch (err) {
-      setError(
-        isAxiosError(err)
-          ? ((err.response?.data as { detail?: string } | undefined)?.detail ?? err.message)
-          : t("ho.deleteError"),
-      );
+      setError(translateApiError(err, t, "ho.deleteError"));
     } finally {
       setSaving(false);
     }

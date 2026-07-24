@@ -22,8 +22,9 @@ import HostMessages from "./routes/host.messages";
 import HostFinance from "./routes/host.finance";
 import HostSettings from "./routes/host.settings";
 
-// --- Admin panel: isolated under src/admin/, guarded by the `admin` role ---
 import { RequireRole } from "./components/RequireRole";
+
+// --- Admin panel: isolated under src/admin/, guarded by the `admin` role ---
 import AdminLayout from "./admin/admin";
 import AdminDashboard from "./admin/admin.index";
 import AdminUsers from "./admin/admin.users";
@@ -73,7 +74,14 @@ export default function App() {
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
 
-      <Route path="/host" element={<HostLayout />}>
+      <Route
+        path="/host"
+        element={
+          <RequireRole roles={["reception", "admin"]}>
+            <HostLayout />
+          </RequireRole>
+        }
+      >
         <Route index element={<HostDashboard />} />
         <Route path="objects" element={<HostObjects />} />
         <Route path="objects/new" element={<NewObjectWizard />} />

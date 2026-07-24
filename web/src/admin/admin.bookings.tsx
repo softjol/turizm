@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getAdminBookings, adminCancelBooking, type AdminBookingResponse } from "@/lib/api/admin";
 import type { BookingStatus } from "@/lib/api/bookings";
 import { useI18n } from "@/lib/i18n";
+import { translateApiError } from "@/lib/apiError";
 
 type FilterKey =
   | "all"
@@ -112,10 +113,7 @@ export default function AdminBookings() {
       const updated = await adminCancelBooking(id);
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: updated.status } : r)));
     } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        (err as Error).message;
-      alert(detail);
+      alert(translateApiError(err, t));
     } finally {
       setBusy(null);
     }
