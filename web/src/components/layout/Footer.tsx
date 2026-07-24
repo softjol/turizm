@@ -45,13 +45,13 @@ export function Footer() {
         <div>
           <div className="text-sm font-semibold">{t("footer.contacts")}</div>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li>+996 (312) 00 00 00</li>
+            <li>+996 550 132 808</li>
             <li>support@staykg.kg</li>
             <li>{t("footer.location")}</li>
           </ul>
           <div className="mt-4 flex items-center gap-3">
             <a
-              href="https://instagram.com/staykg"
+              href="https://www.instagram.com/sarychelek_hotels?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
               target="_blank"
               rel="noreferrer"
               aria-label="Instagram"
@@ -62,7 +62,7 @@ export function Footer() {
               </svg>
             </a>
             <a
-              href="https://wa.me/996312000000"
+              href="https://wa.me/996550132808"
               target="_blank"
               rel="noreferrer"
               aria-label="WhatsApp"

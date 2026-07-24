@@ -1,6 +1,6 @@
 import datetime
-import random
 import hashlib
+import random
 import re
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,7 @@ from app.repositories.user import UserRepository
 from app.repositories.otp_code import OtpCodeRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.schemas.auth import TokenResponse, RegisterRequest
+from app.services.email import send_otp_email
 
 class AuthService:
 
@@ -41,101 +42,13 @@ class AuthService:
         return ("+" + digits) if digits else (phone or "")
 
     @classmethod
-    async def register(cls, req: RegisterRequest, db: AsyncSession) -> User:
-        # Check name uniqueness
-        existing_name = await db.execute(
-            UserRepository.model.__table__.select().where(UserRepository.model.name == req.name)
-        )
-        if existing_name.first() is not None:
-            raise HTTPException(status_code=400, detail="Username already taken")
-
-        # Check phone uniqueness (normalized so formats don't create duplicates)
-        phone = cls.normalize_phone(req.whatsapp_phone_number)
-        existing_phone = await UserRepository.get_by_phone(phone, db)
-        if existing_phone is not None:
-            raise HTTPException(status_code=400, detail="Phone number already registered")
-
-        user = User(
-            name=req.name,
-            whatsapp_phone_number=phone,
-            avatar_url=req.avatar_url,
-            language=req.language,
-            role=Role[req.role],
-            is_active=False
-        )
-        await UserRepository.create(user, db)
-        await db.commit()
-        return user
-
-    @classmethod
-    async def request_otp(cls, phone: str, db: AsyncSession) -> str:
-        phone = cls.normalize_phone(phone)
-        # Check if user exists
-        user = await UserRepository.get_by_phone(phone, db)
-        if user is None:
-            raise HTTPException(status_code=404, detail="Phone number not registered. Please register first.")
-
-        # Generate 6 digit code
-        code = "".join(random.choices("0123456789", k=6))
-        
-        # We print it to console for WhatsApp mockup as requested by the TZ
-        print(f"\n--- [WHATSAPP OTP MOCK] To: {phone}, Code: {code} ---\n", flush=True)
-
-        code_hash = hash_secret(code)
-        expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
-
-        otp_record = OtpCode(
-            whatsapp_phone_number=phone,
-            code_hash=code_hash,
-            attempts=0,
-            is_used=False,
-            expires_at=expires_at
-        )
-        await OtpCodeRepository.create(otp_record, db)
-        await db.commit()
-
-        # Returning code for easy programmatic verification
-        return code
-
-    @classmethod
-    async def verify_otp(cls, phone: str, code: str, db: AsyncSession) -> TokenResponse:
-        phone = cls.normalize_phone(phone)
-        otp_record = await OtpCodeRepository.get_latest_active_otp(phone, db)
-        if otp_record is None:
-            raise HTTPException(status_code=400, detail="OTP code expired or not found")
-
-        if otp_record.attempts >= 3:
-            otp_record.is_used = True
-            await db.commit()
-            raise HTTPException(status_code=400, detail="Too many attempts. Request a new code.")
-
-        otp_record.attempts += 1
-        
-        # Verify code
-        is_valid = verify_secret(code, otp_record.code_hash)
-        if not is_valid:
-            await db.commit()
-            raise HTTPException(status_code=400, detail="Invalid OTP code")
-
-        # Mark OTP as used
-        otp_record.is_used = True
-
-        # Activate user if not active
-        user = await UserRepository.get_by_phone(phone, db)
-        if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        if not user.is_active:
-            user.is_active = True
-
-        # Generate tokens
+    async def _issue_tokens(cls, user: User, db: AsyncSession) -> TokenResponse:
         access_token = create_access_token({"sub": str(user.id)})
         refresh_token = create_refresh_token(user.id)
 
-        # Hash and store refresh token
         token_hash = cls._hash_token(refresh_token)
         expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
-        
+
         rt_record = RefreshToken(
             token_hash=token_hash,
             user_id=user.id,
@@ -146,6 +59,105 @@ class AuthService:
         await db.commit()
 
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+    @classmethod
+    async def _generate_and_send_code(cls, email: str, db: AsyncSession) -> None:
+        code = "".join(random.choices("0123456789", k=6))
+        code_hash = hash_secret(code)
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
+
+        otp_record = OtpCode(
+            email=email,
+            code_hash=code_hash,
+            attempts=0,
+            is_used=False,
+            expires_at=expires_at
+        )
+        await OtpCodeRepository.create(otp_record, db)
+        await db.commit()
+
+        await send_otp_email(email, code)
+
+    @classmethod
+    async def register(cls, req: RegisterRequest, db: AsyncSession) -> User:
+        # Check name uniqueness
+        existing_name = await db.execute(
+            UserRepository.model.__table__.select().where(UserRepository.model.name == req.name)
+        )
+        if existing_name.first() is not None:
+            raise HTTPException(status_code=400, detail="Username already taken")
+
+        # Check email uniqueness
+        existing_email = await UserRepository.get_by_email(req.email, db)
+        if existing_email is not None:
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        user = User(
+            name=req.name,
+            email=req.email,
+            password_hash=hash_secret(req.password),
+            avatar_url=req.avatar_url,
+            language=req.language,
+            role=Role[req.role],
+            is_active=False
+        )
+        await UserRepository.create(user, db)
+        await db.commit()
+
+        await cls._generate_and_send_code(req.email, db)
+        return user
+
+    @classmethod
+    async def resend_code(cls, email: str, db: AsyncSession) -> None:
+        email = email.strip().lower()
+        user = await UserRepository.get_by_email(email, db)
+        if user is None:
+            raise HTTPException(status_code=404, detail="Email not registered. Please register first.")
+        if user.is_active:
+            raise HTTPException(status_code=400, detail="Email is already verified")
+
+        await cls._generate_and_send_code(email, db)
+
+    @classmethod
+    async def verify_email(cls, email: str, code: str, db: AsyncSession) -> TokenResponse:
+        email = email.strip().lower()
+        otp_record = await OtpCodeRepository.get_latest_active_otp(email, db)
+        if otp_record is None:
+            raise HTTPException(status_code=400, detail="Code expired or not found. Request a new one.")
+
+        if otp_record.attempts >= 3:
+            otp_record.is_used = True
+            await db.commit()
+            raise HTTPException(status_code=400, detail="Too many attempts. Request a new code.")
+
+        otp_record.attempts += 1
+
+        if not verify_secret(code, otp_record.code_hash):
+            await db.commit()
+            raise HTTPException(status_code=400, detail="Invalid code")
+
+        otp_record.is_used = True
+
+        user = await UserRepository.get_by_email(email, db)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user.is_active = True
+        await db.commit()
+
+        return await cls._issue_tokens(user, db)
+
+    @classmethod
+    async def login(cls, email: str, password: str, db: AsyncSession) -> TokenResponse:
+        email = email.strip().lower()
+        user = await UserRepository.get_by_email(email, db)
+        if user is None or not user.password_hash or not verify_secret(password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Email not verified or account blocked")
+
+        return await cls._issue_tokens(user, db)
 
     @classmethod
     async def refresh_token(cls, refresh_token: str, db: AsyncSession) -> TokenResponse:
@@ -169,7 +181,7 @@ class AuthService:
         if rt_record.expires_at.tzinfo is None:
             # handle naive datetime from postgres if any
             rt_record.expires_at = rt_record.expires_at.replace(tzinfo=datetime.timezone.utc)
-            
+
         if rt_record.expires_at < now:
             raise HTTPException(status_code=401, detail="Refresh token expired")
 
@@ -206,7 +218,7 @@ class AuthService:
     async def google_auth(cls, token: str, db: AsyncSession, role: str = "user") -> TokenResponse:
         # Verify with Google (mock logic for testing, try actual call and fallback)
         import httpx
-        
+
         email = None
         name = None
         google_id = None
@@ -264,7 +276,7 @@ class AuthService:
                     if not user.avatar_url:
                         user.avatar_url = avatar_url
                     await db.commit()
-            
+
             if user is None:
                 # Create new user
                 user = User(
@@ -278,21 +290,4 @@ class AuthService:
                 await UserRepository.create(user, db)
                 await db.commit()
 
-        # Generate tokens
-        access_token = create_access_token({"sub": str(user.id)})
-        refresh_token = create_refresh_token(user.id)
-
-        # Hash and store refresh token
-        token_hash = cls._hash_token(refresh_token)
-        expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
-        
-        rt_record = RefreshToken(
-            token_hash=token_hash,
-            user_id=user.id,
-            is_revoked=False,
-            expires_at=expires_at
-        )
-        await RefreshTokenRepository.create(rt_record, db)
-        await db.commit()
-
-        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+        return await cls._issue_tokens(user, db)

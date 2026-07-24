@@ -8,13 +8,13 @@ class OtpCodeRepository(BaseRepository):
     model = OtpCode
 
     @classmethod
-    async def get_latest_active_otp(cls, phone: str, db: AsyncSession) -> OtpCode | None:
+    async def get_latest_active_otp(cls, email: str, db: AsyncSession) -> OtpCode | None:
         now = datetime.datetime.now(datetime.timezone.utc)
         query = (
             select(cls.model)
             .where(
                 and_(
-                    cls.model.whatsapp_phone_number == phone,
+                    cls.model.email == email,
                     cls.model.is_used == False,
                     cls.model.expires_at > now
                 )

@@ -21,6 +21,7 @@ class User(Base):
     whatsapp_phone_number: Mapped[str | None] = mapped_column(String(25), unique=True,
                                                               index=True, nullable=True)
     email: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     google_id: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, nullable=True)
     role: Mapped[Role] = mapped_column(
         Enum(Role, native_enum=False, length=15), nullable=False, default=Role.user

@@ -45,7 +45,7 @@ export default function EstatesPage() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    getEstates()
+    getEstates({ limit: 100 })
       .then((list) => {
         if (active) setEstates(list);
       })

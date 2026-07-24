@@ -1,19 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { isAxiosError } from "axios";
-import { Phone, ArrowRight, MessageCircle, ShieldCheck, Loader2, UserPlus, Users, Building2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2, UserPlus, Users, Building2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PhoneInput } from "@/components/ui/phone-input";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { requestOtp, verifyOtp, register } from "@/lib/api";
+import { login, register, verifyEmail, resendCode } from "@/lib/api";
 
 type Mode = "login" | "register";
-type RegisterStep = "role" | "form";
+type RegisterStep = "role" | "form" | "code";
 
 export default function AuthPage() {
   const { t } = useI18n();
@@ -21,14 +20,16 @@ export default function AuthPage() {
   const { refresh } = useAuth();
   useDocumentTitle(t("auth.docTitle"));
   const [mode, setMode] = useState<Mode>("login");
-  const [step, setStep] = useState<"form" | "code">("form");
   const [registerStep, setRegisterStep] = useState<RegisterStep>("role");
   const [selectedRole, setSelectedRole] = useState<"user" | "reception">("user");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
   function describeError(err: unknown): string {
     if (isAxiosError(err)) {
@@ -40,9 +41,9 @@ export default function AuthPage() {
 
   function switchMode(next: Mode) {
     setMode(next);
-    setStep("form");
     setRegisterStep("role");
     setError(null);
+    setPassword("");
     setCode("");
   }
 
@@ -52,20 +53,13 @@ export default function AuthPage() {
     setLoading(true);
     try {
       if (mode === "register") {
-        await register({ name, whatsapp_phone_number: phone, role: selectedRole });
-        await requestOtp(phone);
+        await register({ name, email, password, role: selectedRole });
+        setRegisterStep("code");
       } else {
-        try {
-          await requestOtp(phone);
-        } catch (err) {
-          if (isAxiosError(err) && err.response?.status === 404) {
-            setError(t("auth.notRegistered"));
-            return;
-          }
-          throw err;
-        }
+        await login(email, password);
+        await refresh();
+        navigate(selectedRole === "reception" ? "/host" : "/");
       }
-      setStep("code");
     } catch (err) {
       setError(describeError(err));
     } finally {
@@ -73,14 +67,28 @@ export default function AuthPage() {
     }
   }
 
-  async function handleVerifyOtp(e: React.FormEvent) {
+  async function handleVerifyEmail(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await verifyOtp(phone, code);
+      await verifyEmail(email, code);
       await refresh();
       navigate(selectedRole === "reception" ? "/host" : "/");
+    } catch (err) {
+      setError(describeError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendCode() {
+    setError(null);
+    setResent(false);
+    setLoading(true);
+    try {
+      await resendCode(email);
+      setResent(true);
     } catch (err) {
       setError(describeError(err));
     } finally {
@@ -95,7 +103,7 @@ export default function AuthPage() {
       <div className="container-app grid min-h-[calc(100vh-200px)] place-items-center py-12">
         <div className="w-full max-w-lg">
           <div className="rounded-3xl border border-border/70 bg-card p-10 shadow-[var(--shadow-card)]">
-            {step === "form" && (
+            {registerStep !== "code" && (
               <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
                 <button
                   type="button"
@@ -119,7 +127,7 @@ export default function AuthPage() {
             )}
 
             {/* Role selection step */}
-            {isRegister && step === "form" && registerStep === "role" && (
+            {isRegister && registerStep === "role" && (
               <>
                 <h1 className="text-center font-display text-2xl font-extrabold">{t("auth.roleTitle")}</h1>
                 <p className="mt-2 text-center text-sm text-muted-foreground">{t("auth.roleSubtitle")}</p>
@@ -168,16 +176,16 @@ export default function AuthPage() {
             )}
 
             {/* Registration / Login form */}
-            {(!isRegister || registerStep === "form") && step === "form" && (
+            {(!isRegister || registerStep === "form") && (
               <>
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-pop)]">
-                  {isRegister ? <UserPlus className="h-6 w-6" /> : <Phone className="h-6 w-6" />}
+                  {isRegister ? <UserPlus className="h-6 w-6" /> : <Mail className="h-6 w-6" />}
                 </div>
                 <h1 className="mt-5 text-center font-display text-2xl font-extrabold">
-                  {isRegister ? t("auth.titleRegister") : t("auth.titlePhone")}
+                  {isRegister ? t("auth.titleRegister") : t("auth.titleEmail")}
                 </h1>
                 <p className="mt-2 text-center text-sm text-muted-foreground">
-                  {isRegister ? t("auth.subtitleRegister") : t("auth.subtitlePhone")}
+                  {isRegister ? t("auth.subtitleRegister") : t("auth.subtitleEmail")}
                 </p>
 
                 {error && (
@@ -197,15 +205,43 @@ export default function AuthPage() {
                       />
                     </Field>
                   )}
-                  <Field label={t("auth.phone")}>
-                    <PhoneInput value={phone} onChange={setPhone} required />
+                  <Field label={t("auth.email")}>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="aigul@example.com"
+                      required
+                    />
+                  </Field>
+                  <Field label={t("auth.password")}>
+                    <div className="relative">
+                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        minLength={isRegister ? 6 : undefined}
+                        className="pl-9 pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </Field>
                   <Button type="submit" size="lg" className="w-full rounded-xl" disabled={loading}>
                     {loading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <>
-                        {isRegister ? t("auth.register") : t("auth.getCode")}{" "}
+                        {isRegister ? t("auth.register") : t("auth.login")}{" "}
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}
@@ -233,18 +269,25 @@ export default function AuthPage() {
                     </button>
                   </p>
                 </form>
+
+                <div className="my-6 flex items-center gap-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  {t("auth.orDivider")}
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <GoogleSignInButton onError={setError} role={isRegister ? selectedRole : "user"} />
               </>
             )}
 
-            {/* OTP step */}
-            {step === "code" && (
+            {/* Email confirmation step (registration only) */}
+            {isRegister && registerStep === "code" && (
               <>
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-pop)]">
-                  <MessageCircle className="h-6 w-6" />
+                  <Mail className="h-6 w-6" />
                 </div>
                 <h1 className="mt-5 text-center font-display text-2xl font-extrabold">{t("auth.titleCode")}</h1>
                 <p className="mt-2 text-center text-sm text-muted-foreground">
-                  {t("auth.subtitleCode", { phone })}
+                  {t("auth.subtitleCode", { email })}
                 </p>
 
                 {error && (
@@ -252,8 +295,13 @@ export default function AuthPage() {
                     {error}
                   </div>
                 )}
+                {resent && !error && (
+                  <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-center text-sm text-primary">
+                    {t("auth.codeResent")}
+                  </div>
+                )}
 
-                <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
+                <form onSubmit={handleVerifyEmail} className="mt-6 space-y-4">
                   <Field label={t("auth.codeLabel")}>
                     <Input
                       value={code}
@@ -265,27 +313,17 @@ export default function AuthPage() {
                     />
                   </Field>
                   <Button type="submit" size="lg" className="w-full rounded-xl" disabled={loading}>
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("auth.login")}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("auth.confirm")}
                   </Button>
                   <button
                     type="button"
-                    onClick={() => { setError(null); setStep("form"); }}
+                    onClick={handleResendCode}
+                    disabled={loading}
                     className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
                   >
-                    {t("auth.changeNumber")}
+                    {t("auth.resendCode")}
                   </button>
                 </form>
-              </>
-            )}
-
-            {step === "form" && (!isRegister || registerStep === "form") && (
-              <>
-                <div className="my-6 flex items-center gap-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  <span className="h-px flex-1 bg-border" />
-                  {t("auth.orDivider")}
-                  <span className="h-px flex-1 bg-border" />
-                </div>
-                <GoogleSignInButton onError={setError} role={isRegister ? selectedRole : "user"} />
               </>
             )}
 

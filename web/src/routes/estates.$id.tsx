@@ -27,6 +27,9 @@ import { useI18n } from "@/lib/i18n";
 import { useAutoTranslate, T } from "@/lib/translate";
 import { defaultStayDates } from "@/lib/utils";
 
+/** Single support contact shown on every listing, regardless of the host's own data. */
+const SUPPORT_PHONE = "+996 550 132 808";
+
 const amenityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   "Wi-Fi": Wifi,
   Парковка: Car,
@@ -355,13 +358,13 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
                   </div>
                 </div>
                 <a
-                  href={`tel:${estate.host.phone}`}
+                  href={`tel:${SUPPORT_PHONE}`}
                   className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium hover:border-primary"
                 >
-                  <Phone className="h-4 w-4" /> {estate.host.phone}
+                  <Phone className="h-4 w-4" /> {SUPPORT_PHONE}
                 </a>
                 <a
-                  href={`https://wa.me/${estate.host.whatsapp.replace(/\D/g, "")}`}
+                  href={`https://wa.me/${SUPPORT_PHONE.replace(/\D/g, "")}`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-medium text-success-foreground"

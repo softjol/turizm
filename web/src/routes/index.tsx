@@ -219,27 +219,28 @@ export default function HomePage() {
 
       {/* Popular estates */}
       <section className="container-app py-10">
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-sm font-semibold uppercase tracking-wider text-primary">
-              {t("popular.eyebrow")}
-            </div>
-            <h2 className="mt-1 font-display text-3xl font-extrabold md:text-4xl">
-              {t("popular.title")}
-            </h2>
+        <div>
+          <div className="text-sm font-semibold uppercase tracking-wider text-primary">
+            {t("popular.eyebrow")}
           </div>
-          <Link
-            to="/estates"
-            className="hidden items-center gap-1 text-sm font-semibold text-primary hover:underline md:inline-flex"
-          >
-            {t("popular.all")} <ArrowRight className="h-4 w-4" />
-          </Link>
+          <h2 className="mt-1 font-display text-3xl font-extrabold md:text-4xl">
+            {t("popular.title")}
+          </h2>
         </div>
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {estates.slice(0, 6).map((e) => (
             <EstateCard key={e.id} e={e} />
           ))}
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <Link
+            to="/estates"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+          >
+            {t("popular.all")} <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 

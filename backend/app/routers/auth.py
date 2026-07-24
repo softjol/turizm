@@ -2,7 +2,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.dependencies import get_db
-from app.schemas.auth import RegisterRequest, RequestOtpRequest, VerifyOtpRequest, RefreshTokenRequest, GoogleAuthRequest, TokenResponse
+from app.schemas.auth import RegisterRequest, LoginRequest, VerifyEmailRequest, ResendCodeRequest, RefreshTokenRequest, GoogleAuthRequest, TokenResponse
 from app.schemas.user import UserResponse, UserUpdate
 from app.services.auth import AuthService
 from app.repositories.user import UserRepository
@@ -13,19 +13,24 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Регистрация: имя + номер WhatsApp."""
+    """Регистрация: имя + email + пароль. Код подтверждения отправляется на email."""
     return await AuthService.register(req, db)
 
-@router.post("/login/request-otp")
-async def request_otp(req: RequestOtpRequest, db: AsyncSession = Depends(get_db)):
-    """Запросить код подтверждения, отправляется в WhatsApp."""
-    await AuthService.request_otp(req.whatsapp_phone_number, db)
-    return {"message": "OTP code sent successfully"}
+@router.post("/verify-email", response_model=TokenResponse)
+async def verify_email(req: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    """Подтвердить email кодом после регистрации, получить access/refresh токены."""
+    return await AuthService.verify_email(req.email, req.code, db)
 
-@router.post("/login/verify-otp", response_model=TokenResponse)
-async def verify_otp(req: VerifyOtpRequest, db: AsyncSession = Depends(get_db)):
-    """Подтвердить код, получить access/refresh токены."""
-    return await AuthService.verify_otp(req.whatsapp_phone_number, req.code, db)
+@router.post("/resend-code")
+async def resend_code(req: ResendCodeRequest, db: AsyncSession = Depends(get_db)):
+    """Повторно отправить код подтверждения email."""
+    await AuthService.resend_code(req.email, db)
+    return {"message": "Code sent successfully"}
+
+@router.post("/login", response_model=TokenResponse)
+async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """Вход по email и паролю (без кода)."""
+    return await AuthService.login(req.email, req.password, db)
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(req: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):

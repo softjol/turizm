@@ -32,6 +32,11 @@ services:
       ALGORITHM: ${ALGORITHM:-HS256}
       # Set SEED_DEMO=1 in .env to load demo hotels on first start.
       SEED_DEMO: ${SEED_DEMO:-0}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     volumes:
       # Persist uploaded hotel/room photos across rebuilds.
       - backend_static:/app/static

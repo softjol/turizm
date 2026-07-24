@@ -12,20 +12,26 @@ export type Role = "admin" | "reception" | "user";
 
 export interface RegisterRequest {
   name: string;
-  whatsapp_phone_number: string;
+  email: string;
+  password: string;
   avatar_url?: string | null;
   language?: string | null;
   role?: "user" | "reception";
 }
 
-export interface RequestOtpRequest {
-  whatsapp_phone_number: string;
+export interface LoginRequest {
+  email: string;
+  password: string;
 }
 
-export interface VerifyOtpRequest {
-  whatsapp_phone_number: string;
+export interface VerifyEmailRequest {
+  email: string;
   /** 6-digit verification code. */
   code: string;
+}
+
+export interface ResendCodeRequest {
+  email: string;
 }
 
 export interface GoogleAuthRequest {
@@ -35,7 +41,7 @@ export interface GoogleAuthRequest {
 
 // --- Response bodies -------------------------------------------------------
 
-/** TokenResponse - also the shape verify-otp / refresh / google return. */
+/** TokenResponse - also the shape verify-email / refresh / google return. */
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -68,26 +74,36 @@ export async function register(body: RegisterRequest): Promise<User> {
   return data;
 }
 
-/** Sends an OTP to the given WhatsApp number. Returns the status message. */
-export async function requestOtp(whatsapp_phone_number: string): Promise<MessageResponse> {
-  const { data } = await api.post<MessageResponse>("/auth/login/request-otp", {
-    whatsapp_phone_number,
-  } satisfies RequestOtpRequest);
+/**
+ * Verifies the email-confirmation code sent at registration, persists the
+ * returned tokens, and returns them.
+ */
+export async function verifyEmail(email: string, code: string): Promise<TokenResponse> {
+  const { data } = await api.post<TokenResponse>("/auth/verify-email", {
+    email,
+    code,
+  } satisfies VerifyEmailRequest);
+  setTokens(data as AuthTokens);
+  return data;
+}
+
+/** Resends the email-confirmation code. */
+export async function resendCode(email: string): Promise<MessageResponse> {
+  const { data } = await api.post<MessageResponse>("/auth/resend-code", {
+    email,
+  } satisfies ResendCodeRequest);
   return data;
 }
 
 /**
- * Verifies the OTP, persists the returned tokens, and returns them.
+ * Logs in with email + password, persists the returned tokens, and returns them.
  * After this resolves, `api` will automatically attach the access token.
  */
-export async function verifyOtp(
-  whatsapp_phone_number: string,
-  code: string,
-): Promise<TokenResponse> {
-  const { data } = await api.post<TokenResponse>("/auth/login/verify-otp", {
-    whatsapp_phone_number,
-    code,
-  } satisfies VerifyOtpRequest);
+export async function login(email: string, password: string): Promise<TokenResponse> {
+  const { data } = await api.post<TokenResponse>("/auth/login", {
+    email,
+    password,
+  } satisfies LoginRequest);
   setTokens(data as AuthTokens);
   return data;
 }
