@@ -29,6 +29,8 @@ class Room(Base):
     price_per_night: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     capacity_adults: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
     capacity_children: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    bed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    price_per_bed: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[RoomStatus] = mapped_column(
         Enum(RoomStatus, native_enum=False, length=20),

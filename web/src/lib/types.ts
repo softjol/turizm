@@ -12,6 +12,8 @@ export interface Room {
   type: "Стандарт" | "Полулюкс" | "Люкс";
   capacity: number;
   price: number;
+  bedCount: number;
+  pricePerBed: number | null;
   description: string;
   image: string;
   amenities: string[];

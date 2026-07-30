@@ -1,5 +1,5 @@
 import datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,20 @@ from app.repositories.notification import NotificationRepository
 from app.schemas.booking import BookingCreate, MultiBookingCreate, WalkInBookingCreate
 
 class BookingService:
+
+    @staticmethod
+    def _bed_terms(room: Room) -> tuple[int, Decimal]:
+        """Return rentable bed count and price. Explicit host settings win;
+        otherwise split the whole-room price evenly by advertised capacity."""
+        bed_count = room.bed_count or (room.capacity_adults + room.capacity_children)
+        if bed_count < 1:
+            raise HTTPException(status_code=400, detail="This room has no rentable beds")
+        price = (
+            Decimal(room.price_per_bed)
+            if room.price_per_bed is not None
+            else Decimal(room.price_per_night) / Decimal(bed_count)
+        )
+        return bed_count, price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     @staticmethod
     async def _send_notification(user_id: int, type_: str, title: str, body: str, db: AsyncSession):
@@ -93,20 +107,31 @@ class BookingService:
         if not room:
             raise HTTPException(status_code=404, detail="Room not found")
 
-        is_available = await RoomRepository.check_availability(req.room_id, req.date_from, req.date_to, db)
+        bed_price = None
+        if req.bed_number is not None:
+            bed_count, bed_price = cls._bed_terms(room)
+            if req.bed_number > bed_count or req.guests != 1:
+                raise HTTPException(status_code=400, detail="This bed cannot be rented for the requested guests")
+        is_available = await RoomRepository.check_availability(
+            req.room_id, req.date_from, req.date_to, db, req.bed_number
+        )
         if not is_available:
             raise HTTPException(status_code=400, detail="Room is occupied or unavailable for the selected dates")
 
-        cls._check_total_capacity([room], req.guests)
+        if req.bed_number is None:
+            cls._check_total_capacity([room], req.guests)
 
         # Calculations
         num_nights = (req.date_to - req.date_from).days
-        total_amount = Decimal(num_nights) * room.price_per_night
+        total_amount = Decimal(num_nights) * (
+            bed_price if req.bed_number is not None else room.price_per_night
+        )
         deposit_amount = total_amount * Decimal("0.20")  # 20% deposit requirement
 
         booking = Booking(
             user_id=user_id,
             room_id=req.room_id,
+            bed_number=req.bed_number,
             date_from=req.date_from,
             date_to=req.date_to,
             guests=req.guests,
@@ -147,9 +172,38 @@ class BookingService:
         if req.date_from >= req.date_to:
             raise HTTPException(status_code=400, detail="Check-out date must be after check-in date")
 
-        rooms = await cls._load_available_rooms(req.room_ids, req.date_from, req.date_to, req.guests, db)
+        rooms = await cls._fetch_rooms(req.room_ids, db) if req.room_ids else []
+        for room in rooms:
+            if not await RoomRepository.check_availability(room.id, req.date_from, req.date_to, db):
+                raise HTTPException(status_code=400, detail=f"Room {room.room_number} is occupied")
 
-        if len({room.hotel_id for room in rooms}) > 1:
+        bed_rooms: list[tuple[Room, int]] = []
+        seen_beds: set[tuple[int, int]] = set()
+        for selected in req.bed_selections:
+            key = (selected.room_id, selected.bed_number)
+            if key in seen_beds or selected.room_id in req.room_ids:
+                raise HTTPException(status_code=400, detail="Duplicate or conflicting room/bed selection")
+            seen_beds.add(key)
+            room = await RoomRepository.get_by_id_with_relations(selected.room_id, db)
+            if not room:
+                raise HTTPException(status_code=404, detail=f"Room {selected.room_id} not found")
+            bed_count, _ = cls._bed_terms(room)
+            if selected.bed_number > bed_count:
+                raise HTTPException(status_code=400, detail="Bed is not available for separate rental")
+            if not await RoomRepository.check_availability(
+                room.id, req.date_from, req.date_to, db, selected.bed_number
+            ):
+                raise HTTPException(status_code=400, detail=f"Bed {selected.bed_number} is occupied")
+            bed_rooms.append((room, selected.bed_number))
+
+        all_rooms = rooms + [room for room, _ in bed_rooms]
+        if not all_rooms:
+            raise HTTPException(status_code=400, detail="Select at least one room or bed")
+        capacity = sum(r.capacity_adults + r.capacity_children for r in rooms) + len(bed_rooms)
+        if req.guests > capacity:
+            raise HTTPException(status_code=400, detail="Selected places do not fit all guests")
+
+        if len({room.hotel_id for room in all_rooms}) > 1:
             raise HTTPException(status_code=400, detail="All rooms in a single booking must belong to the same hotel")
 
         num_nights = (req.date_to - req.date_from).days
@@ -169,6 +223,17 @@ class BookingService:
             )
             await BookingRepository.create(booking, db)
             bookings.append(booking)
+        for room, bed_number in bed_rooms:
+            _, bed_price = cls._bed_terms(room)
+            total_amount = Decimal(num_nights) * bed_price
+            booking = Booking(
+                user_id=user_id, room_id=room.id, bed_number=bed_number,
+                date_from=req.date_from, date_to=req.date_to, guests=1,
+                total_amount=total_amount, deposit_amount=total_amount * Decimal("0.20"),
+                status=BookingStatus.pending,
+            )
+            await BookingRepository.create(booking, db)
+            bookings.append(booking)
 
         await db.flush()
 
@@ -176,12 +241,12 @@ class BookingService:
             user_id=user_id,
             type_="booking_created",
             title="Бронирование создано",
-            body=f"Вы успешно создали бронирование {len(bookings)} номер(ов) в отеле '{rooms[0].hotel.name}'. Ожидайте подтверждения от ресепшена.",
+            body=f"Вы успешно создали бронирование {len(bookings)} мест в отеле '{all_rooms[0].hotel.name}'. Ожидайте подтверждения от ресепшена.",
             db=db
         )
 
         notified_owners = set()
-        for room in rooms:
+        for room in all_rooms:
             if room.hotel.owner_id in notified_owners:
                 continue
             notified_owners.add(room.hotel.owner_id)

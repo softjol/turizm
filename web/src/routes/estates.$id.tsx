@@ -16,6 +16,8 @@ import {
   Share2,
   Check,
   Loader2,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -36,6 +38,48 @@ const amenityIcons: Record<string, React.ComponentType<{ className?: string }>> 
   Кондиционер: Snowflake,
   Завтрак: Coffee,
 };
+
+type BedChoice = { roomId: string; bed: number };
+
+function bestPlacesForGuests(estate: Estate, guests: number) {
+  type Choice = { price: number; roomIds: string[]; beds: BedChoice[] };
+  let states = new Map<number, Choice>([[0, { price: 0, roomIds: [], beds: [] }]]);
+
+  for (const room of estate.rooms) {
+    const options: { capacity: number; price: number; roomId?: string; beds?: BedChoice[] }[] = [
+      { capacity: 0, price: 0 },
+      { capacity: room.capacity, price: room.price, roomId: room.id },
+    ];
+    if (room.pricePerBed && room.bedCount > 0) {
+      for (let count = 1; count <= room.bedCount; count += 1) {
+        options.push({
+          capacity: count,
+          price: room.pricePerBed * count,
+          beds: Array.from({ length: count }, (_, index) => ({
+            roomId: room.id,
+            bed: index + 1,
+          })),
+        });
+      }
+    }
+    const next = new Map<number, Choice>();
+    for (const [capacity, choice] of states) {
+      for (const option of options) {
+        const nextCapacity = Math.min(guests, capacity + option.capacity);
+        const candidate: Choice = {
+          price: choice.price + option.price,
+          roomIds: option.roomId ? [...choice.roomIds, option.roomId] : choice.roomIds,
+          beds: option.beds ? [...choice.beds, ...option.beds] : choice.beds,
+        };
+        if (!next.has(nextCapacity) || candidate.price < next.get(nextCapacity)!.price) {
+          next.set(nextCapacity, candidate);
+        }
+      }
+    }
+    states = next;
+  }
+  return states.get(guests) ?? { price: 0, roomIds: [], beds: [] };
+}
 
 export default function EstateDetail() {
   const { id } = useParams();
@@ -90,15 +134,19 @@ export default function EstateDetail() {
 function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void }) {
   const { t, td } = useI18n();
   useDocumentTitle(`${td(estate.name)} - StayKG`);
-  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(
-    estate.rooms[0] ? [estate.rooms[0].id] : [],
-  );
+  const initialPlaces = bestPlacesForGuests(estate, 2);
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(initialPlaces.roomIds);
+  const [selectedBeds, setSelectedBeds] = useState<BedChoice[]>(initialPlaces.beds);
   const selectedRooms = estate.rooms.filter((r) => selectedRoomIds.includes(r.id));
-  const totalCapacity = selectedRooms.reduce((sum, r) => sum + r.capacity, 0);
+  const totalCapacity = selectedRooms.reduce((sum, r) => sum + r.capacity, 0) + selectedBeds.length;
 
   function toggleRoom(roomId: string) {
+    const hasSelectedBeds = selectedBeds.some((b) => b.roomId === roomId);
+    setSelectedBeds((prev) => prev.filter((b) => b.roomId !== roomId));
     setSelectedRoomIds((prev) =>
-      prev.includes(roomId) ? prev.filter((id) => id !== roomId) : [...prev, roomId],
+      prev.includes(roomId) || hasSelectedBeds
+        ? prev.filter((id) => id !== roomId)
+        : [...prev, roomId],
     );
   }
   const [checkIn, setCheckIn] = useState(() => defaultStayDates().checkIn);
@@ -107,14 +155,18 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
   const [fav, setFav] = useState(() => isFavorite(Number(estate.id)));
   const [copied, setCopied] = useState(false);
 
-  // If the guest deselects a room and the remaining selection can't fit the current
-  // party size, bring `guests` back down to what still fits.
-  useEffect(() => {
-    if (totalCapacity && guests > totalCapacity) {
-      setGuests(totalCapacity);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalCapacity]);
+  const maxGuests = estate.rooms.reduce(
+    (sum, room) => sum + Math.max(room.capacity, room.bedCount),
+    0,
+  );
+
+  function changeGuests(nextGuests: number) {
+    const next = Math.max(1, Math.min(nextGuests, maxGuests || 1));
+    const places = bestPlacesForGuests(estate, next);
+    setGuests(next);
+    setSelectedRoomIds(places.roomIds);
+    setSelectedBeds(places.beds);
+  }
 
   // User-entered content (not in the i18n dictionary) → machine-translated.
   const nameText = useAutoTranslate(estate.name);
@@ -135,7 +187,11 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
     1,
     Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000),
   );
-  const total = selectedRooms.reduce((sum, r) => sum + r.price, 0) * nights;
+  const bedsTotal = selectedBeds.reduce(
+    (sum, b) => sum + (estate.rooms.find((r) => r.id === b.roomId)?.pricePerBed ?? 0),
+    0,
+  );
+  const total = (selectedRooms.reduce((sum, r) => sum + r.price, 0) + bedsTotal) * nights;
   const deposit = Math.round(total * 0.2);
 
   return (
@@ -231,12 +287,20 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
                   </div>
                 )}
                 {estate.rooms.map((r: (typeof estate.rooms)[number]) => {
-                  const checked = selectedRoomIds.includes(r.id);
+                  const roomBeds = selectedBeds.filter((b) => b.roomId === r.id);
+                  const checked = selectedRoomIds.includes(r.id) || roomBeds.length > 0;
+                  const displayedPrice = selectedRoomIds.includes(r.id)
+                    ? r.price
+                    : roomBeds.length > 0
+                      ? roomBeds.length * (r.pricePerBed ?? r.price)
+                      : r.price;
                   return (
-                    <button
+                    <div
                       key={r.id}
                       onClick={() => toggleRoom(r.id)}
-                      className={`relative flex w-full gap-4 overflow-hidden rounded-2xl border bg-card p-2 text-left transition ${
+                      role="button"
+                      tabIndex={0}
+                      className={`relative flex w-full flex-wrap gap-4 overflow-hidden rounded-2xl border bg-card p-2 text-left transition ${
                         checked
                           ? "border-primary shadow-[var(--shadow-soft)]"
                           : "border-border/70 hover:border-primary/50"
@@ -271,7 +335,7 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
                           </div>
                           <div className="text-right">
                             <div className="font-display text-xl font-extrabold">
-                              {r.price.toLocaleString("ru-RU")}
+                              {displayedPrice.toLocaleString("ru-RU")}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {t("detail.perNight")}
@@ -282,7 +346,7 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
                           <T text={r.description} />
                         </p>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -378,7 +442,7 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
           {/* Booking widget */}
           <aside className="lg:sticky lg:top-20 lg:self-start">
             <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-card)]">
-              {selectedRooms.length === 0 ? (
+              {selectedRooms.length === 0 && selectedBeds.length === 0 ? (
                 <div className="text-sm text-muted-foreground">
                   {estate.rooms.length === 0 ? t("detail.noRooms") : t("detail.selectRoomsHint")}
                 </div>
@@ -395,6 +459,17 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
                     </span>
                   </div>
                 ))}
+                {selectedBeds.map((b) => {
+                  const room = estate.rooms.find((r) => r.id === b.roomId)!;
+                  return (
+                    <div key={`${b.roomId}-${b.bed}`} className="flex items-baseline justify-between gap-2">
+                      <span className="truncate text-sm font-medium"><T text={room.name} /> · 1 место</span>
+                      <span className="whitespace-nowrap text-sm text-muted-foreground">
+                        {room.pricePerBed!.toLocaleString("ru-RU")} {t("common.kgs")}/{t("detail.perNight")}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="mt-5 overflow-hidden rounded-xl border border-border">
@@ -407,29 +482,47 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
                   </Field>
                 </div>
                 <Field label={t("search.guests")} icon={Users}>
-                  <input
-                    type="number"
-                    min={1}
-                    max={totalCapacity || undefined}
-                    value={guests}
-                    onChange={(e) =>
-                      setGuests(
-                        totalCapacity
-                          ? Math.min(Number(e.target.value), totalCapacity)
-                          : Number(e.target.value),
-                      )
-                    }
-                    className="w-full bg-transparent text-sm font-medium outline-none"
-                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => changeGuests(guests - 1)}
+                      disabled={guests <= 1}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-border transition hover:border-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Уменьшить количество гостей"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <div className="text-center">
+                      <div className="font-display text-lg font-bold">{guests}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {guests === 1 ? "гость" : guests < 5 ? "гостя" : "гостей"}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => changeGuests(guests + 1)}
+                      disabled={guests >= maxGuests}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-border transition hover:border-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Увеличить количество гостей"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
                 </Field>
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                При изменении гостей автоматически подбирается самый выгодный вариант.
+              </p>
+
+              {totalCapacity < guests && (
+                <div className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  Выберите ещё комнату или кровать для {guests} гостей.
+                </div>
+              )}
 
               <div className="mt-4 space-y-2 text-sm">
                 <Row
-                  label={t("detail.roomsTimesNights", {
-                    n: selectedRooms.length,
-                    nights,
-                  })}
+                  label={`${guests} ${guests === 1 ? "гость" : guests < 5 ? "гостя" : "гостей"} × ${nights} ${nights === 1 ? "ночь" : "ночей"}`}
                   value={`${total.toLocaleString("ru-RU")} ${t("common.kgs")}`}
                 />
                 <Row label={t("detail.serviceFee")} value={`0 ${t("common.kgs")}`} />
@@ -452,13 +545,19 @@ function EstateView({ estate, onReload }: { estate: Estate; onReload: () => void
                 />
               </div>
 
-              <Button asChild size="lg" className="mt-5 w-full rounded-xl">
-                <Link
-                  to={`/estates/${estate.id}/checkout?rooms=${selectedRoomIds.join(",")}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`}
-                >
-                  {t("detail.book")}
-                </Link>
-              </Button>
+              {totalCapacity >= guests ? (
+                <Button asChild size="lg" className="mt-5 w-full rounded-xl">
+                  <Link
+                    to={`/estates/${estate.id}/checkout?rooms=${selectedRoomIds.join(",")}&beds=${selectedBeds.map((b) => `${b.roomId}:${b.bed}`).join(",")}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`}
+                  >
+                    {t("detail.book")}
+                  </Link>
+                </Button>
+              ) : (
+                <Button size="lg" className="mt-5 w-full rounded-xl" disabled>
+                  Недостаточно мест
+                </Button>
+              )}
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 {t("detail.noCharge")}
               </p>

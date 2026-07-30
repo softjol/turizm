@@ -5,13 +5,19 @@ from app.models.booking import BookingStatus
 
 class BookingCreate(BaseModel):
     room_id: int
+    bed_number: int | None = Field(None, ge=1)
     date_from: datetime.date
     date_to: datetime.date
     guests: int = Field(1, ge=1)
 
+class BedSelection(BaseModel):
+    room_id: int
+    bed_number: int = Field(..., ge=1)
+
 class MultiBookingCreate(BaseModel):
     """Book several rooms at once (same dates), e.g. a family needing 2 rooms."""
-    room_ids: list[int] = Field(..., min_length=1, max_length=20)
+    room_ids: list[int] = Field(default_factory=list, max_length=20)
+    bed_selections: list[BedSelection] = Field(default_factory=list, max_length=100)
     date_from: datetime.date
     date_to: datetime.date
     guests: int = Field(1, ge=1)
@@ -33,6 +39,7 @@ class BookingResponse(BaseModel):
     guest_name: str | None = None
     guest_phone: str | None = None
     room_id: int
+    bed_number: int | None = None
     date_from: datetime.date
     date_to: datetime.date
     guests: int
@@ -44,6 +51,7 @@ class BookingResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class AdminBookingResponse(BaseModel):
     """Booking enriched with guest/hotel/room labels for the admin bookings list."""

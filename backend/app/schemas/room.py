@@ -14,6 +14,8 @@ class RoomResponse(BaseModel):
     price_per_night: Decimal
     capacity_adults: int
     capacity_children: int
+    bed_count: int = 0
+    price_per_bed: Decimal | None = None
     description: str
     status: RoomStatus
     created_at: datetime.datetime
@@ -32,6 +34,8 @@ class RoomCreate(BaseModel):
     price_per_night: Decimal = Field(..., gt=0)
     capacity_adults: int = Field(2, ge=1)
     capacity_children: int = Field(0, ge=0)
+    bed_count: int = Field(0, ge=0, le=100)
+    price_per_bed: Decimal | None = Field(None, gt=0)
     description: str = Field(..., min_length=5)
     status: RoomStatus = RoomStatus.available
 
@@ -42,6 +46,8 @@ class RoomUpdate(BaseModel):
     price_per_night: Decimal | None = None
     capacity_adults: int | None = None
     capacity_children: int | None = None
+    bed_count: int | None = Field(None, ge=0, le=100)
+    price_per_bed: Decimal | None = Field(None, gt=0)
     description: str | None = None
     status: RoomStatus | None = None
 

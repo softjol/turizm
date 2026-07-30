@@ -16,6 +16,8 @@ export interface RoomResponse {
   price_per_night: string;
   capacity_adults: number;
   capacity_children: number;
+  bed_count: number;
+  price_per_bed: string | null;
   description: string;
   status: RoomStatus;
   created_at: string;
@@ -44,6 +46,8 @@ export interface RoomCreatePayload {
   price_per_night: number;
   capacity_adults?: number;
   capacity_children?: number;
+  bed_count?: number;
+  price_per_bed?: number | null;
   description: string;
 }
 

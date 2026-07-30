@@ -286,6 +286,8 @@ function RoomForm({
   const [price, setPrice] = useState(editRoom ? String(editRoom.price_per_night) : "");
   const [adults, setAdults] = useState(editRoom ? String(editRoom.capacity_adults) : "2");
   const [children, setChildren] = useState(editRoom ? String(editRoom.capacity_children) : "0");
+  const [bedCount, setBedCount] = useState(editRoom ? String(editRoom.bed_count) : "0");
+  const [bedPrice, setBedPrice] = useState(editRoom?.price_per_bed ?? "");
   const [description, setDescription] = useState(editRoom?.description ?? "");
   const [images, setImages] = useState<HotelImage[]>(editRoom?.images ?? []);
   const [uploading, setUploading] = useState(false);
@@ -339,6 +341,8 @@ function RoomForm({
         price_per_night: Number(price) || 0,
         capacity_adults: Number(adults) || 1,
         capacity_children: Number(children) || 0,
+        bed_count: Number(bedCount) || 0,
+        price_per_bed: Number(bedCount) > 0 ? Number(bedPrice) || 0 : null,
         description: description.trim(),
       };
       if (editRoom) {
@@ -438,6 +442,25 @@ function RoomForm({
               min={0}
             />
           </Field>
+          <Field label="Количество кроватей для отдельной аренды">
+            <Input
+              type="number"
+              value={bedCount}
+              onChange={(e) => setBedCount(e.target.value)}
+              min={0}
+            />
+          </Field>
+          {Number(bedCount) > 0 && (
+            <Field label="Цена одной кровати за ночь">
+              <Input
+                type="number"
+                value={bedPrice}
+                onChange={(e) => setBedPrice(e.target.value)}
+                min={1}
+                placeholder="1000"
+              />
+            </Field>
+          )}
         </div>
 
         <div className="mt-5">

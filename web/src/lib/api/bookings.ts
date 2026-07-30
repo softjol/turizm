@@ -17,6 +17,7 @@ export interface BookingResponse {
   guest_name: string | null;
   guest_phone: string | null;
   room_id: number;
+  bed_number: number | null;
   date_from: string;
   date_to: string;
   guests: number;
@@ -44,6 +45,7 @@ export async function createBooking(payload: BookingCreatePayload): Promise<Book
 
 export interface MultiBookingCreatePayload {
   room_ids: number[];
+  bed_selections?: { room_id: number; bed_number: number }[];
   date_from: string;
   date_to: string;
   guests: number;

@@ -21,6 +21,8 @@ class Booking(Base):
     # Null for walk-in guests created by reception without a site account (see guest_name/guest_phone).
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     room_id: Mapped[int] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
+    # Null means the whole room; otherwise this booking occupies only this numbered bed.
+    bed_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     guest_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     guest_phone: Mapped[str | None] = mapped_column(String(25), nullable=True)
     date_from: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
@@ -45,8 +47,15 @@ class Booking(Base):
         ExcludeConstraint(
             ('room_id', '='),
             (func.daterange(date_from, date_to), '&&'),
-            where=(status.in_(['pending', 'confirmed', 'checked_in'])),
-            name='exclude_booking_overlap'
+            where=(status.in_(['pending', 'confirmed', 'checked_in']) & (bed_number.is_(None))),
+            name='exclude_whole_room_booking_overlap'
+        ),
+        ExcludeConstraint(
+            ('room_id', '='),
+            ('bed_number', '='),
+            (func.daterange(date_from, date_to), '&&'),
+            where=(status.in_(['pending', 'confirmed', 'checked_in']) & (bed_number.is_not(None))),
+            name='exclude_bed_booking_overlap'
         ),
         CheckConstraint(
             "user_id IS NOT NULL OR guest_name IS NOT NULL",

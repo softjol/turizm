@@ -78,8 +78,7 @@ export default function AdminUsers() {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) || (u.whatsapp_phone_number ?? "").toLowerCase().includes(q),
+      (u) => u.name.toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q),
     );
   }, [users, query]);
 
@@ -110,7 +109,7 @@ export default function AdminUsers() {
             <thead className="bg-surface text-left">
               <tr className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="px-5 py-3">{t("ad.colName")}</th>
-                <th className="px-5 py-3">{t("ho.phone")}</th>
+                <th className="px-5 py-3">{t("hs.email")}</th>
                 <th className="px-5 py-3">{t("ad.colRole")}</th>
                 <th className="px-5 py-3">{t("ad.colStatus")}</th>
                 <th className="px-5 py-3 text-right">{t("hb.actions")}</th>
@@ -120,7 +119,7 @@ export default function AdminUsers() {
               {filtered.map((u) => (
                 <tr key={u.id} className="hover:bg-muted/40">
                   <td className="px-5 py-4 font-semibold">{u.name}</td>
-                  <td className="px-5 py-4">{u.whatsapp_phone_number ?? "-"}</td>
+                  <td className="px-5 py-4">{u.email ?? "-"}</td>
                   <td className="px-5 py-4">
                     <select
                       value={u.role}

@@ -40,7 +40,8 @@ class RoomRepository(BaseRepository):
 
     @classmethod
     async def check_availability(
-        cls, room_id: int, date_from: datetime.date, date_to: datetime.date, db: AsyncSession
+        cls, room_id: int, date_from: datetime.date, date_to: datetime.date, db: AsyncSession,
+        bed_number: int | None = None
     ) -> bool:
         # Check room status first
         room = await cls.get_by_id(room_id, db)
@@ -60,6 +61,8 @@ class RoomRepository(BaseRepository):
                 Booking.date_to > date_from
             )
         )
+        if bed_number is not None:
+            query = query.where((Booking.bed_number.is_(None)) | (Booking.bed_number == bed_number))
         result = await db.execute(query)
         overlapping_booking = result.first()
         return overlapping_booking is None

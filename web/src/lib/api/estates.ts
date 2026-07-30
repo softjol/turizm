@@ -47,12 +47,22 @@ function formatReviewDate(iso: string): string {
 }
 
 function mapRoom(room: RoomResponse, fallbackImage: string): UIRoom {
+  const capacity = room.capacity_adults + room.capacity_children;
+  const bedCount = room.bed_count > 0 ? room.bed_count : capacity;
+  const roomPrice = Number(room.price_per_night);
   return {
     id: String(room.id),
     name: room.name,
     type: ROOM_TYPE_LABEL[room.type] ?? "Стандарт",
-    capacity: room.capacity_adults + room.capacity_children,
-    price: Number(room.price_per_night),
+    capacity,
+    price: roomPrice,
+    bedCount,
+    pricePerBed:
+      room.price_per_bed == null
+        ? bedCount > 0
+          ? roomPrice / bedCount
+          : null
+        : Number(room.price_per_bed),
     description: room.description,
     image: roomImageUrl(room, fallbackImage),
     amenities: room.amenities.map((a) => a.name),

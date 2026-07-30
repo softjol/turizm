@@ -35,6 +35,8 @@ class RoomService:
             name=req.name,
             type=req.type,
             price_per_night=req.price_per_night,
+            bed_count=req.bed_count,
+            price_per_bed=req.price_per_bed,
             capacity_adults=req.capacity_adults,
             capacity_children=req.capacity_children,
             description=req.description,

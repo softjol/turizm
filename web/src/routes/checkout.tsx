@@ -83,12 +83,30 @@ export default function CheckoutPage() {
         ? estate.rooms.filter((r) => requestedIds.includes(r.id))
         : estate.rooms.slice(0, 1))
     : [];
+  const bedSelections = (params.get("beds") ?? "")
+    .split(",")
+    .filter(Boolean)
+    .map((token) => {
+      const [roomId, bed] = token.split(":");
+      return { roomId, bed: Number(bed) };
+    });
+  const beds = estate
+    ? bedSelections.flatMap((selected) => {
+        const room = estate.rooms.find((r) => r.id === selected.roomId);
+        return room && room.pricePerBed && selected.bed >= 1 && selected.bed <= room.bedCount
+          ? [{ room, bed: selected.bed }]
+          : [];
+      })
+    : [];
 
   const nights = Math.max(
     1,
     Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000),
   );
-  const total = rooms.reduce((sum, r) => sum + r.price, 0) * nights;
+  const total = (
+    rooms.reduce((sum, r) => sum + r.price, 0) +
+    beds.reduce((sum, b) => sum + b.room.pricePerBed!, 0)
+  ) * nights;
   const deposit = Math.round(total * 0.2);
   const fmt = (n: number) => n.toLocaleString("ru-RU");
   const dateLocale = lang === "en" ? "en-US" : "ru-RU";
@@ -96,7 +114,7 @@ export default function CheckoutPage() {
     new Date(d).toLocaleDateString(dateLocale, { day: "numeric", month: "long" });
 
   async function handlePay() {
-    if (rooms.length === 0) return;
+    if (rooms.length === 0 && beds.length === 0) return;
     // Booking creation requires authentication - send guests to login first.
     if (!getAccessToken()) {
       navigate("/auth");
@@ -107,6 +125,7 @@ export default function CheckoutPage() {
     try {
       await createMultiBooking({
         room_ids: rooms.map((r) => Number(r.id)),
+        bed_selections: beds.map((b) => ({ room_id: Number(b.room.id), bed_number: b.bed })),
         date_from: checkIn,
         date_to: checkOut,
         guests,
@@ -129,7 +148,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!estate || rooms.length === 0) {
+  if (!estate || (rooms.length === 0 && beds.length === 0)) {
     return (
       <AppShell>
         <div className="container-app py-24 text-center">
@@ -233,6 +252,13 @@ export default function CheckoutPage() {
                         />
                       </div>
                     ))}
+                    {beds.map(({ room, bed }, i) => (
+                      <div key={`${room.id}-${bed}`}>
+                        {(rooms.length > 0 || i > 0) && <div className="my-2 border-t border-border" />}
+                        <Row label="Место" value={`Кровать ${bed} · ${td(room.name)}`} />
+                        <Row label={t("co.pricePerNight")} value={`${fmt(room.pricePerBed!)} ${t("common.kgs")}`} />
+                      </div>
+                    ))}
                   </Section>
 
                   <Section title={t("co.datesGuests")}>
@@ -299,7 +325,7 @@ export default function CheckoutPage() {
                 <div className="font-display text-lg font-bold">{t("co.total")}</div>
                 <div className="mt-4 space-y-2 text-sm">
                   <Row
-                    label={t("detail.roomsTimesNights", { n: rooms.length, nights })}
+                    label={t("detail.roomsTimesNights", { n: rooms.length + beds.length, nights })}
                     value={`${fmt(total)} ${t("common.kgs")}`}
                   />
                   <Row label={t("detail.serviceFee")} value={`0 ${t("common.kgs")}`} />
